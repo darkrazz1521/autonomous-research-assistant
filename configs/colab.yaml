@@ -16,7 +16,7 @@ storage:
 
 colab:
   enabled: true
-  mount_google_drive: true
+  mount_google_drive: false
   google_drive_mount_point: /content/drive
   google_drive_project_dir: /content/drive/MyDrive/autonomous_research_assistant
   prefer_drive_storage: false
