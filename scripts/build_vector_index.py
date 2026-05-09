@@ -22,6 +22,7 @@ def main() -> None:
     parser.add_argument("--embedding-model", help="Override the configured embedding model.")
     parser.add_argument("--vector-db", help="Override the configured vector store backend.")
     parser.add_argument("--batch-size", type=int, help="Override the embedding batch size if embeddings must be generated.")
+    parser.add_argument("--quality-filtering", action="store_true", help="Enable retrieval quality filtering if embeddings must be generated.")
     args = parser.parse_args()
 
     config = load_config_from_args(args)
@@ -32,7 +33,12 @@ def main() -> None:
     try:
         report = VectorIndexBuilder(config, model_name=args.embedding_model, backend=args.vector_db).build(force_rebuild=args.force_rebuild)
     except FileNotFoundError:
-        EmbeddingPipeline(config, model_name=args.embedding_model, batch_size=args.batch_size).generate(force_rebuild=args.force_rebuild)
+        EmbeddingPipeline(
+            config,
+            model_name=args.embedding_model,
+            batch_size=args.batch_size,
+            quality_filtering=args.quality_filtering,
+        ).generate(force_rebuild=args.force_rebuild)
         report = VectorIndexBuilder(config, model_name=args.embedding_model, backend=args.vector_db).build(force_rebuild=args.force_rebuild)
     print(json.dumps(report, indent=2, default=str))
 

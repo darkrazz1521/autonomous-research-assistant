@@ -30,3 +30,18 @@ class RetrievalAnalyticsReporter:
     def write_evaluation_report(self, report: EvaluationReport) -> Path:
         return self.write_report(f"evaluation_{report.evaluation_id}", report.model_dump(mode="json"))
 
+    def write_chunk_quality_summary(self, rows: list[dict[str, Any]]) -> Path:
+        by_paper: dict[str, int] = {}
+        excluded = 0
+        for row in rows:
+            paper_id = str(row.get("paper_id", "unknown"))
+            by_paper[paper_id] = by_paper.get(paper_id, 0) + 1
+            excluded += int(bool(row.get("retrieval_excluded")))
+        payload = {
+            "total_chunks": len(rows),
+            "excluded_chunks": excluded,
+            "average_chunk_quality": round(sum(float(row.get("retrieval_quality_score", 0.0)) for row in rows) / max(len(rows), 1), 6),
+            "average_chunk_noise": round(sum(float(row.get("retrieval_noise_score", 0.0)) for row in rows) / max(len(rows), 1), 6),
+            "top_noisy_papers": sorted(by_paper.items(), key=lambda item: item[1], reverse=True)[:10],
+        }
+        return self.write_report("chunk_quality_summary", payload)

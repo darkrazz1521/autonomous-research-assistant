@@ -225,6 +225,7 @@ retrieval:
     cache_enabled: true
     min_retrieval_quality_score: 0.55
     include_flagged_chunks: false
+    quality_filtering_default: false
   vector_db:
     default_backend: faiss
     supported_backends:
@@ -265,3 +266,43 @@ retrieval:
     default_probe_count: 25
     use_manual_probes: true
     use_scifact_when_available: true
+  quality:
+    min_semantic_density: 0.35
+    max_table_probability: 0.55
+    max_noise_score: 0.60
+    min_quality_score: 0.45
+    skip_low_quality_before_embedding: false
+    mark_excluded_chunks: true
+    cache_enabled: true
+  section_weights:
+    enabled: true
+    weights:
+      abstract: 1.30
+      introduction: 1.15
+      methodology: 1.20
+      methods: 1.20
+      results: 1.05
+      discussion: 1.10
+      conclusion: 1.20
+      appendix: 0.70
+      references: 0.25
+    default_weight: 1.0
+  context_window:
+    enabled: true
+    radius: 1
+    max_context_chunks: 5
+    merge_strategy: ordered
+    max_merged_tokens: 1200
+  query_expansion:
+    enabled: false
+    acronym_expansion: true
+    synonym_mapping: true
+    normalize_plurals: true
+    abbreviation_recovery: true
+  fusion:
+    method: rrf
+    rrf_k: 60
+    dense_weight: 0.55
+    sparse_weight: 0.25
+    rerank_weight: 0.20
+    normalize_dense_sparse: true

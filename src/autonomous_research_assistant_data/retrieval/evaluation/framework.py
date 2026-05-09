@@ -57,7 +57,19 @@ class RetrievalEvaluationFramework:
         write_json(self._probe_path(), {"probes": [probe.model_dump(mode="json") for probe in probes]})
         return probes[:limit] if limit else probes
 
-    def evaluate(self, *, top_k: int | None = None, probe_limit: int | None = None, mode: str = "hybrid", rerank: bool = False) -> EvaluationReport:
+    def evaluate(
+        self,
+        *,
+        top_k: int | None = None,
+        probe_limit: int | None = None,
+        mode: str = "hybrid",
+        rerank: bool = False,
+        fusion_method: str | None = None,
+        expand_query: bool = False,
+        section_weighting_enabled: bool = True,
+        context_window: bool = False,
+        window_radius: int | None = None,
+    ) -> EvaluationReport:
         k = top_k or self.config.retrieval.evaluation.default_top_k
         probes = self.build_manual_probes(limit=probe_limit or self.config.retrieval.evaluation.default_probe_count)
         recall_hits = 0
@@ -67,7 +79,18 @@ class RetrievalEvaluationFramework:
         latencies: list[float] = []
 
         for probe in probes:
-            trace = self.api.search(probe.query, top_k=k, mode=mode, rerank=rerank, citation_aware=True)
+            trace = self.api.search(
+                probe.query,
+                top_k=k,
+                mode=mode,
+                rerank=rerank,
+                citation_aware=True,
+                fusion_method=fusion_method,
+                expand_query=expand_query,
+                section_weighting_enabled=section_weighting_enabled,
+                context_window=context_window,
+                window_radius=window_radius,
+            )
             latencies.append(trace.latency_ms)
             ranked_ids = [item.chunk_id for item in trace.results]
             hit_rank = None
@@ -97,7 +120,16 @@ class RetrievalEvaluationFramework:
             ndcg_at_k=round(sum(ndcgs) / max(len(ndcgs), 1), 4),
             citation_grounding_score=round(sum(citation_grounding) / max(len(citation_grounding), 1), 4) if citation_grounding else 0.0,
             latency_ms_mean=round(sum(latencies) / max(len(latencies), 1), 4),
-            metadata={"mode": mode, "rerank": rerank, "probe_path": str(self._probe_path())},
+            metadata={
+                "mode": mode,
+                "rerank": rerank,
+                "probe_path": str(self._probe_path()),
+                "fusion_method": fusion_method,
+                "expand_query": expand_query,
+                "context_window": context_window,
+                "window_radius": window_radius,
+                "section_weighting_enabled": section_weighting_enabled,
+            },
         )
         write_json(
             self.config.retrieval.retrieval_evaluation_dir / f"evaluation_{report.evaluation_id}.json",

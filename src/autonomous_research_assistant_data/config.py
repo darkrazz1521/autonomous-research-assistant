@@ -244,6 +244,7 @@ class RetrievalEmbeddingConfig(BaseModel):
     cache_enabled: bool = True
     min_retrieval_quality_score: float = 0.55
     include_flagged_chunks: bool = False
+    quality_filtering_default: bool = False
 
 
 class RetrievalVectorDbConfig(BaseModel):
@@ -285,6 +286,59 @@ class RetrievalSearchConfig(BaseModel):
     section_aware_boost: bool = True
 
 
+class RetrievalQualityConfig(BaseModel):
+    min_semantic_density: float = 0.35
+    max_table_probability: float = 0.55
+    max_noise_score: float = 0.60
+    min_quality_score: float = 0.45
+    skip_low_quality_before_embedding: bool = False
+    mark_excluded_chunks: bool = True
+    cache_enabled: bool = True
+
+
+class RetrievalSectionWeightConfig(BaseModel):
+    enabled: bool = True
+    weights: dict[str, float] = Field(
+        default_factory=lambda: {
+            "abstract": 1.30,
+            "introduction": 1.15,
+            "methodology": 1.20,
+            "methods": 1.20,
+            "results": 1.05,
+            "discussion": 1.10,
+            "conclusion": 1.20,
+            "appendix": 0.70,
+            "references": 0.25,
+        }
+    )
+    default_weight: float = 1.0
+
+
+class RetrievalContextWindowConfig(BaseModel):
+    enabled: bool = True
+    radius: int = 1
+    max_context_chunks: int = 5
+    merge_strategy: str = "ordered"
+    max_merged_tokens: int = 1200
+
+
+class RetrievalQueryExpansionConfig(BaseModel):
+    enabled: bool = False
+    acronym_expansion: bool = True
+    synonym_mapping: bool = True
+    normalize_plurals: bool = True
+    abbreviation_recovery: bool = True
+
+
+class RetrievalFusionConfig(BaseModel):
+    method: str = "rrf"
+    rrf_k: int = 60
+    dense_weight: float = 0.55
+    sparse_weight: float = 0.25
+    rerank_weight: float = 0.20
+    normalize_dense_sparse: bool = True
+
+
 class RetrievalEvaluationConfig(BaseModel):
     enabled: bool = True
     default_top_k: int = 10
@@ -307,6 +361,11 @@ class RetrievalConfig(BaseModel):
     reranker: RetrievalRerankerConfig = Field(default_factory=RetrievalRerankerConfig)
     search: RetrievalSearchConfig = Field(default_factory=RetrievalSearchConfig)
     evaluation: RetrievalEvaluationConfig = Field(default_factory=RetrievalEvaluationConfig)
+    quality: RetrievalQualityConfig = Field(default_factory=RetrievalQualityConfig)
+    section_weights: RetrievalSectionWeightConfig = Field(default_factory=RetrievalSectionWeightConfig)
+    context_window: RetrievalContextWindowConfig = Field(default_factory=RetrievalContextWindowConfig)
+    query_expansion: RetrievalQueryExpansionConfig = Field(default_factory=RetrievalQueryExpansionConfig)
+    fusion: RetrievalFusionConfig = Field(default_factory=RetrievalFusionConfig)
 
     @model_validator(mode="after")
     def resolve_paths(self) -> "RetrievalConfig":

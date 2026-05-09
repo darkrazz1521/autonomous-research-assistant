@@ -32,8 +32,24 @@ class RetrievalApi:
         rerank: bool = False,
         citation_aware: bool = True,
         section_filter: str | None = None,
+        fusion_method: str | None = None,
+        expand_query: bool = False,
+        section_weighting_enabled: bool = True,
+        context_window: bool = False,
+        window_radius: int | None = None,
     ) -> RetrievalTrace:
-        trace = self.hybrid.search(query, top_k=top_k, namespace=self.namespace, mode=mode, section_filter=section_filter)
+        trace = self.hybrid.search(
+            query,
+            top_k=top_k,
+            namespace=self.namespace,
+            mode=mode,
+            section_filter=section_filter,
+            fusion_method=fusion_method,
+            expand_query=expand_query,
+            section_weighting_enabled=section_weighting_enabled,
+            context_window=context_window,
+            window_radius=window_radius,
+        )
         if rerank and self.config.retrieval.reranker.enabled:
             reranked = self.reranker.rerank(query, trace.results[: self.config.retrieval.reranker.top_k_depth])
             trace.results = reranked + trace.results[self.config.retrieval.reranker.top_k_depth :]
@@ -44,4 +60,3 @@ class RetrievalApi:
                 item.citation_boost = 0.0
         self.analytics.append_trace(trace)
         return trace
-

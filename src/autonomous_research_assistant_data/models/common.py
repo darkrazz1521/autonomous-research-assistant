@@ -252,6 +252,15 @@ class ChunkRecord(BaseModel):
     structural_anomaly_score: float = 0.0
     flagged_for_review: bool = False
     extra: dict[str, Any] = Field(default_factory=dict)
+    retrieval_excluded: bool = False
+    numeric_ratio: float = 0.0
+    alphabetic_ratio: float = 0.0
+    language_entropy: float = 0.0
+    table_probability: float = 0.0
+    benchmark_probability: float = 0.0
+    duplicate_line_ratio: float = 0.0
+    average_sentence_length: float = 0.0
+    malformed_structure_score: float = 0.0
 
 
 class ProcessingReport(BaseModel):
@@ -337,7 +346,12 @@ class RetrievalResult(BaseModel):
     score: float
     dense_score: float | None = None
     sparse_score: float | None = None
+    raw_vector_score: float | None = None
+    raw_sparse_score: float | None = None
     rerank_score: float | None = None
+    section_weight: float = 1.0
+    final_retrieval_score: float | None = None
+    final_score_breakdown: dict[str, Any] = Field(default_factory=dict)
     citation_boost: float = 0.0
     section_boost: float = 0.0
     rank: int = 0
@@ -347,6 +361,10 @@ class RetrievalResult(BaseModel):
     citations: list[str] = Field(default_factory=list)
     citation_entities: list[str] = Field(default_factory=list)
     neighboring_chunk_ids: list[str] = Field(default_factory=list)
+    primary_chunk: dict[str, Any] = Field(default_factory=dict)
+    context_before: list[dict[str, Any]] = Field(default_factory=list)
+    context_after: list[dict[str, Any]] = Field(default_factory=list)
+    merged_context: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

@@ -13,6 +13,7 @@ from autonomous_research_assistant_data.models.common import EmbeddingRecord
 from autonomous_research_assistant_data.retrieval.analytics.reporter import RetrievalAnalyticsReporter
 from autonomous_research_assistant_data.retrieval.common import load_chunk_records, slugify_model_name, stable_hash_text
 from autonomous_research_assistant_data.retrieval.embedding.service import EmbeddingService
+from autonomous_research_assistant_data.retrieval.quality.chunk_quality import ChunkQualityAnalyzer
 from autonomous_research_assistant_data.storage.file_store import read_json, write_json
 from autonomous_research_assistant_data.storage.manifest import ManifestStore
 
@@ -22,14 +23,25 @@ class EmbeddingPipeline:
 
     source_name = "embedding_pipeline"
 
-    def __init__(self, config: AppConfig, *, model_name: str | None = None, batch_size: int | None = None) -> None:
+    def __init__(
+        self,
+        config: AppConfig,
+        *,
+        model_name: str | None = None,
+        batch_size: int | None = None,
+        quality_filtering: bool | None = None,
+    ) -> None:
         self.config = config
         self.logger = get_logger(f"retrieval.{self.source_name}")
         self.model_name = model_name or config.retrieval.embedding.default_model
         self.batch_size = batch_size or config.retrieval.embedding.batch_size
+        self.quality_filtering = (
+            config.retrieval.embedding.quality_filtering_default if quality_filtering is None else quality_filtering
+        )
         self.model_slug = slugify_model_name(self.model_name)
         self.manifest = ManifestStore(config.retrieval.manifests_dir / "embeddings_manifest.json")
         self.analytics = RetrievalAnalyticsReporter(config.retrieval.retrieval_analytics_dir)
+        self.quality_analyzer = ChunkQualityAnalyzer(config)
         self.embedder = EmbeddingService(
             self.model_name,
             normalize=config.retrieval.embedding.normalize_embeddings,
@@ -43,20 +55,36 @@ class EmbeddingPipeline:
         parts = relative.parts[:-1]
         return self.config.retrieval.embeddings_dir / self.model_slug / Path(*parts) / f"{paper_id}.json"
 
-    def _eligible(self, chunk) -> bool:
+    def _eligible(self, chunk, quality_payload: dict[str, Any] | None = None) -> bool:
         cfg = self.config.retrieval.embedding
         if chunk.retrieval_quality_score < cfg.min_retrieval_quality_score:
             return False
         if chunk.flagged_for_review and not cfg.include_flagged_chunks:
             return False
+        if self.quality_filtering and quality_payload:
+            if quality_payload.get("retrieval_excluded") and self.config.retrieval.quality.skip_low_quality_before_embedding:
+                return False
+            if float(quality_payload.get("retrieval_noise_score", 0.0)) > self.config.retrieval.quality.max_noise_score:
+                return False
         return True
 
     def generate(self, *, force_rebuild: bool = False, namespace: str | None = None) -> dict[str, Any]:
         namespace_value = namespace or self.config.retrieval.vector_db.namespace
-        chunk_records = [(path, chunk) for path, chunk in load_chunk_records(self.config.pdf_processing.chunks_dir) if self._eligible(chunk)]
-        grouped: dict[str, list[tuple[Path, Any]]] = defaultdict(list)
-        for path, chunk in chunk_records:
-            grouped[chunk.paper_id].append((path, chunk))
+        all_chunks = load_chunk_records(self.config.pdf_processing.chunks_dir)
+        chunk_records: list[tuple[Path, Any, dict[str, Any] | None]] = []
+        excluded_chunks = 0
+        quality_rows: list[dict[str, Any]] = []
+        for path, chunk in all_chunks:
+            quality_payload = self.quality_analyzer.analyse(chunk, source_path=path) if self.quality_filtering else None
+            if quality_payload:
+                quality_rows.append(quality_payload)
+            if self._eligible(chunk, quality_payload):
+                chunk_records.append((path, chunk, quality_payload))
+            else:
+                excluded_chunks += 1
+        grouped: dict[str, list[tuple[Path, Any, dict[str, Any] | None]]] = defaultdict(list)
+        for path, chunk, quality_payload in chunk_records:
+            grouped[chunk.paper_id].append((path, chunk, quality_payload))
 
         written_records = 0
         skipped_records = 0
@@ -69,7 +97,7 @@ class EmbeddingPipeline:
                 batch = paper_chunks[batch_start : batch_start + self.batch_size]
                 texts = [item[1].chunk_text for item in batch]
                 vectors = self.embedder.encode(texts, batch_size=self.batch_size)
-                for (source_path, chunk), vector in zip(batch, vectors, strict=True):
+                for (source_path, chunk, quality_payload), vector in zip(batch, vectors, strict=True):
                     entry_id = f"{self.model_slug}:{namespace_value}:{chunk.chunk_id}"
                     if not force_rebuild and self.manifest.exists(entry_id):
                         skipped_records += 1
@@ -95,10 +123,16 @@ class EmbeddingPipeline:
                             "citation_density": chunk.citation_density,
                             "equation_density": chunk.equation_density,
                             "retrieval_quality_score": chunk.retrieval_quality_score,
+                            "retrieval_noise_score": float((quality_payload or {}).get("retrieval_noise_score", chunk.noise_score)),
                             "coherence_score": chunk.coherence_score,
                             "structural_integrity_score": chunk.structural_integrity_score,
                             "narrative_continuity_score": chunk.narrative_continuity_score,
                             "semantic_boundary_score": chunk.semantic_boundary_score,
+                            "parent_section_id": chunk.parent_section_id,
+                            "retrieval_excluded": bool((quality_payload or {}).get("retrieval_excluded", False)),
+                            "table_probability": float((quality_payload or {}).get("table_probability", chunk.table_probability)),
+                            "benchmark_probability": float((quality_payload or {}).get("benchmark_probability", chunk.benchmark_probability)),
+                            "semantic_density_score": float((quality_payload or {}).get("semantic_density_score", chunk.semantic_density_score)),
                             "citation_spans": [span.model_dump(mode="json") for span in chunk.citation_spans],
                             "citation_entities": chunk.citation_entities,
                             "chunk_topic_signature": chunk.chunk_topic_signature,
@@ -150,6 +184,8 @@ class EmbeddingPipeline:
             "backend": self.embedder.backend,
             "vector_dim": self.embedder.vector_dim,
             "eligible_chunks": len(chunk_records),
+            "excluded_chunks": excluded_chunks,
+            "quality_filtering_enabled": self.quality_filtering,
             "written_records": written_records,
             "skipped_records": skipped_records,
             "output_files": output_files,
@@ -157,5 +193,8 @@ class EmbeddingPipeline:
         }
         analytics_path = self.analytics.write_report(f"embedding_report_{self.model_slug}", report)
         report["analytics_path"] = str(analytics_path)
+        if self.quality_filtering and quality_rows:
+            quality_summary = self.analytics.write_chunk_quality_summary(quality_rows)
+            report["chunk_quality_analytics_path"] = str(quality_summary)
         self.logger.info("Generated retrieval embeddings", extra={"context": report})
         return report

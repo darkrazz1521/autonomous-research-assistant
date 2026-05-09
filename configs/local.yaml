@@ -31,3 +31,8 @@ pdf_processing:
 retrieval:
   embedding:
     batch_size: 8
+  quality:
+    min_semantic_density: 0.35
+    max_table_probability: 0.55
+    max_noise_score: 0.60
+    min_quality_score: 0.45

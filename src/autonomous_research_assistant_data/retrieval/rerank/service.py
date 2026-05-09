@@ -10,6 +10,7 @@ from pathlib import Path
 from autonomous_research_assistant_data.config import AppConfig
 from autonomous_research_assistant_data.models.common import RetrievalResult
 from autonomous_research_assistant_data.retrieval.common import slugify_model_name, stable_hash_text
+from autonomous_research_assistant_data.retrieval.ranking.fusion import rerank_aware_final_score
 from autonomous_research_assistant_data.storage.file_store import read_json, write_json
 
 
@@ -70,10 +71,19 @@ class RerankerService:
         for item in results:
             updated = item.model_copy(deep=True)
             updated.rerank_score = float(scores.get(item.chunk_id, item.score))
-            updated.score = updated.rerank_score
+            fused_score = float(updated.final_score_breakdown.get("fused_score", updated.score))
+            updated.final_retrieval_score = rerank_aware_final_score(
+                self.config,
+                fused_score=fused_score,
+                section_weight=updated.section_weight or 1.0,
+                rerank_score=updated.rerank_score,
+                citation_boost=updated.citation_boost,
+            )
+            updated.final_score_breakdown["rerank_weight"] = self.config.retrieval.fusion.rerank_weight
+            updated.final_score_breakdown["rerank_score"] = updated.rerank_score
+            updated.score = updated.final_retrieval_score
             reranked.append(updated)
         reranked.sort(key=lambda item: item.score, reverse=True)
         for rank, item in enumerate(reranked, start=1):
             item.rank = rank
         return reranked
-

@@ -24,6 +24,12 @@ def main() -> None:
     parser.add_argument("--embedding-model", help="Override the configured embedding model.")
     parser.add_argument("--vector-db", help="Override the configured vector store backend.")
     parser.add_argument("--probe-count", type=int, help="Limit the number of evaluation probes.")
+    parser.add_argument("--disable-section-weighting", action="store_true", help="Disable section-aware weighting.")
+    parser.add_argument("--context-window", action="store_true", help="Evaluate with retrieval context windows enabled.")
+    parser.add_argument("--window-radius", type=int, help="Override the retrieval context window radius.")
+    parser.add_argument("--fusion-method", choices=["rrf", "weighted"], help="Override the hybrid fusion method.")
+    parser.add_argument("--expand-query", action="store_true", help="Enable local scientific query expansion.")
+    parser.add_argument("--strict-retrieval-validation", action="store_true", help="Reserved compatibility flag for strict retrieval validation workflows.")
     args = parser.parse_args()
 
     config = load_config_from_args(args)
@@ -38,6 +44,11 @@ def main() -> None:
         probe_limit=args.probe_count,
         mode="hybrid" if args.hybrid else "dense",
         rerank=args.rerank,
+        fusion_method=args.fusion_method,
+        expand_query=args.expand_query,
+        section_weighting_enabled=not args.disable_section_weighting,
+        context_window=args.context_window,
+        window_radius=args.window_radius,
     )
     print(json.dumps(report.model_dump(mode="json"), indent=2, default=str))
 

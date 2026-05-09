@@ -41,6 +41,10 @@ def load_chunk_records(chunks_dir: Path) -> list[tuple[Path, ChunkRecord]]:
     return records
 
 
+def load_chunk_record_map(chunks_dir: Path) -> dict[str, tuple[Path, ChunkRecord]]:
+    return {chunk.chunk_id: (path, chunk) for path, chunk in load_chunk_records(chunks_dir)}
+
+
 def load_embedding_records(embeddings_dir: Path, model_name: str) -> list[EmbeddingRecord]:
     model_dir = embeddings_dir / slugify_model_name(model_name)
     records: list[EmbeddingRecord] = []
@@ -51,4 +55,3 @@ def load_embedding_records(embeddings_dir: Path, model_name: str) -> list[Embedd
         for record_payload in payload.get("embeddings", []):
             records.append(EmbeddingRecord.model_validate(record_payload))
     return records
-

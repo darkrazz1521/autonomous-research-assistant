@@ -24,6 +24,12 @@ def main() -> None:
     parser.add_argument("--embedding-model", help="Override the configured embedding model.")
     parser.add_argument("--vector-db", help="Override the configured vector store backend.")
     parser.add_argument("--section-filter", help="Filter results by canonical section label.")
+    parser.add_argument("--disable-section-weighting", action="store_true", help="Disable section-aware weighting.")
+    parser.add_argument("--context-window", action="store_true", help="Attach neighboring chunk context to each result.")
+    parser.add_argument("--window-radius", type=int, help="Override the context window radius.")
+    parser.add_argument("--fusion-method", choices=["rrf", "weighted"], help="Override the hybrid fusion method.")
+    parser.add_argument("--expand-query", action="store_true", help="Enable local scientific query expansion.")
+    parser.add_argument("--strict-retrieval-validation", action="store_true", help="Fail fast when malformed retrieval contexts are detected.")
     args = parser.parse_args()
 
     config = load_config_from_args(args)
@@ -38,7 +44,16 @@ def main() -> None:
         mode="hybrid" if args.hybrid else "dense",
         rerank=args.rerank,
         section_filter=args.section_filter,
+        fusion_method=args.fusion_method,
+        expand_query=args.expand_query,
+        section_weighting_enabled=not args.disable_section_weighting,
+        context_window=args.context_window,
+        window_radius=args.window_radius,
     )
+    if args.strict_retrieval_validation:
+        invalid = [item.chunk_id for item in trace.results if args.context_window and not item.merged_context]
+        if invalid:
+            raise RuntimeError(f"Malformed retrieval contexts detected for chunk ids: {', '.join(invalid)}")
     print(json.dumps(trace.model_dump(mode="json"), indent=2, default=str))
 
 

@@ -20,6 +20,7 @@ def main() -> None:
     parser.add_argument("--force-rebuild", action="store_true", help="Regenerate embeddings even when manifest entries already exist.")
     parser.add_argument("--embedding-model", help="Override the configured embedding model.")
     parser.add_argument("--batch-size", type=int, help="Override the embedding batch size.")
+    parser.add_argument("--quality-filtering", action="store_true", help="Enable retrieval quality filtering during embedding generation.")
     args = parser.parse_args()
 
     config = load_config_from_args(args)
@@ -31,6 +32,7 @@ def main() -> None:
         config,
         model_name=args.embedding_model,
         batch_size=args.batch_size,
+        quality_filtering=args.quality_filtering,
     ).generate(force_rebuild=args.force_rebuild)
     print(json.dumps(report, indent=2, default=str))
 
