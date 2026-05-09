@@ -1,0 +1,24 @@
+runtime:
+  environment: local
+
+storage:
+  root_dir: .
+  datasets_dir: datasets
+  raw_dir: datasets/raw
+  processed_dir: datasets/processed
+  metadata_dir: datasets/metadata
+  external_dir: datasets/external
+  state_dir: datasets/state
+  logs_dir: logs
+  huggingface_cache_dir: datasets/external/hf_cache
+  huggingface_home_dir: datasets/external/hf_home
+  local_source_code_only: false
+
+colab:
+  enabled: false
+  mount_google_drive: false
+
+arxiv:
+  simple_mode:
+    max_results: 15
+    delay_between_downloads_seconds: 7.0

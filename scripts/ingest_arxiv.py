@@ -9,9 +9,8 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from autonomous_research_assistant_data.bootstrap import bootstrap_directories
-from autonomous_research_assistant_data.cli import build_common_parser
-from autonomous_research_assistant_data.config import load_config
+from autonomous_research_assistant_data.bootstrap import bootstrap_directories, prepare_runtime
+from autonomous_research_assistant_data.cli import build_common_parser, load_config_from_args
 from autonomous_research_assistant_data.core.logging import configure_logging, get_logger
 from autonomous_research_assistant_data.ingestion.arxiv.pipeline import ArxivIngestor
 from autonomous_research_assistant_data.ingestion.base import IngestionContext
@@ -20,10 +19,11 @@ from autonomous_research_assistant_data.storage.metadata_store import MetadataSt
 from autonomous_research_assistant_data.storage.state import StateStore
 
 
-async def async_main(config_path: str) -> None:
-    config = load_config(config_path)
-    bootstrap_directories(config)
+async def async_main(args) -> None:
+    config = load_config_from_args(args)
     configure_logging(config)
+    prepare_runtime(config)
+    bootstrap_directories(config)
 
     context = IngestionContext(
         config=config,
@@ -39,9 +39,8 @@ async def async_main(config_path: str) -> None:
 def main() -> None:
     parser = build_common_parser("Run arXiv ingestion.")
     args = parser.parse_args()
-    asyncio.run(async_main(args.config))
+    asyncio.run(async_main(args))
 
 
 if __name__ == "__main__":
     main()
-

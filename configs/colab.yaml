@@ -1,0 +1,35 @@
+runtime:
+  environment: colab
+
+storage:
+  root_dir: /content
+  datasets_dir: /content/datasets
+  raw_dir: /content/datasets/raw
+  processed_dir: /content/datasets/processed
+  metadata_dir: /content/datasets/metadata
+  external_dir: /content/datasets/external
+  state_dir: /content/datasets/state
+  logs_dir: /content/logs
+  huggingface_cache_dir: /content/datasets/external/hf_cache
+  huggingface_home_dir: /content/datasets/external/hf_home
+  local_source_code_only: true
+
+colab:
+  enabled: true
+  mount_google_drive: true
+  google_drive_mount_point: /content/drive
+  google_drive_project_dir: /content/drive/MyDrive/autonomous_research_assistant
+  prefer_drive_storage: false
+  require_gpu: false
+
+arxiv:
+  batch_size: 20
+  max_api_results_per_run: 40
+  max_pdf_downloads_per_run: 20
+  pdf_download_concurrency: 2
+  request_pause_seconds: 3.0
+  download_timeout_seconds: 180
+  simple_mode:
+    max_results: 12
+    delay_between_downloads_seconds: 8.0
+    search_page_size: 30

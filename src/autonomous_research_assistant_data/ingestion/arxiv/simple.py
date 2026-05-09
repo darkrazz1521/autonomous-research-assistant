@@ -1,4 +1,4 @@
-"""Conservative arXiv ingestion mode for Kaggle-safe validation runs."""
+"""Conservative arXiv ingestion mode for validation and Colab-safe runs."""
 
 from __future__ import annotations
 

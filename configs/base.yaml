@@ -1,5 +1,8 @@
 project_name: autonomous-research-assistant-phase2
-profile: local
+
+runtime:
+  environment: local
+  auto_detect: true
 
 storage:
   root_dir: .
@@ -11,6 +14,7 @@ storage:
   state_dir: datasets/state
   logs_dir: logs
   huggingface_cache_dir: datasets/external/hf_cache
+  huggingface_home_dir: datasets/external/hf_home
   parquet_export_enabled: true
   local_source_code_only: false
 
@@ -26,6 +30,23 @@ retry:
   max_delay_seconds: 20.0
   backoff_multiplier: 2.0
   jitter_seconds: 0.25
+
+huggingface:
+  datasets_version: 2.19.1
+  supported_datasets_major_minor: "2.19"
+  hub_version: 0.23.4
+  token_env_var: HF_TOKEN
+  enable_version_guard: true
+  log_future_warnings: true
+  offline_mode: false
+
+colab:
+  enabled: false
+  mount_google_drive: false
+  google_drive_mount_point: /content/drive
+  google_drive_project_dir: /content/drive/MyDrive/autonomous_research_assistant
+  prefer_drive_storage: false
+  require_gpu: false
 
 arxiv:
   enabled: true
@@ -49,7 +70,7 @@ arxiv:
     enabled: true
     max_results: 15
     delay_between_downloads_seconds: 7.0
-    search_page_size: 20
+    search_page_size: 30
     sort_by: submittedDate
     sort_order: descending
     metadata_only: false
@@ -64,18 +85,31 @@ datasets:
       - claims
       - corpus
     split_overrides: {}
+    revision: main
     trust_remote_code: false
+    allow_legacy_script_fallback: true
+    streaming: false
+    data_dir: null
+    data_files: null
     export_format: parquet
     export_enabled: true
+    loader_kwargs: {}
   fever:
     enabled: true
     loader: huggingface
     huggingface_dataset_id: fever/fever
-    configs: []
+    configs:
+      - v1.0
     split_overrides: {}
-    trust_remote_code: false
+    revision: main
+    trust_remote_code: true
+    allow_legacy_script_fallback: true
+    streaming: false
+    data_dir: null
+    data_files: null
     export_format: parquet
     export_enabled: true
+    loader_kwargs: {}
   msmarco:
     enabled: true
     loader: huggingface
@@ -83,9 +117,15 @@ datasets:
     configs:
       - v1.1
     split_overrides: {}
-    trust_remote_code: false
+    revision: main
+    trust_remote_code: true
+    allow_legacy_script_fallback: true
+    streaming: false
+    data_dir: null
+    data_files: null
     export_format: parquet
     export_enabled: true
+    loader_kwargs: {}
 
 validation:
   require_non_empty_splits: true

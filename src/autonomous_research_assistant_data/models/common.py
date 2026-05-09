@@ -34,6 +34,7 @@ class DatasetArtifactRecord(BaseModel):
     storage_path: Path | None = None
     fingerprint: str | None = None
     downloaded_at: datetime
+    loader_strategy: str | None = None
     extra: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -44,4 +45,3 @@ class ManifestEntry(BaseModel):
     created_at: datetime
     updated_at: datetime
     payload: dict[str, Any]
-

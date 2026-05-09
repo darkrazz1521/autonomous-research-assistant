@@ -2,12 +2,12 @@
 
 ## Phase 2: Data Collection Infrastructure
 
-This repository contains a production-oriented data ingestion and organization layer for the research assistant platform. Phase 2 focuses only on:
+This repository contains the production-grade data ingestion and organization layer for the research assistant platform. Phase 2 focuses only on:
 
 - research paper ingestion from arXiv
 - benchmark dataset ingestion for SciFact, FEVER, and MS MARCO
 - metadata management
-- validation, resumability, logging, and storage organization
+- validation, resumability, logging, and structured storage
 
 It intentionally does not include:
 
@@ -18,25 +18,22 @@ It intentionally does not include:
 - evaluation agents
 - hallucination detection models
 
-## Architecture
+## Runtime Architecture
 
-The codebase uses a clean, service-oriented layout that is compatible with future FastAPI integration:
+The codebase now targets a Local + Google Colab AI engineering workflow:
 
-- `configs/`: central YAML configuration profiles
-- `datasets/`: raw, processed, metadata, external, and state storage
-- `logs/`: structured JSONL logs and failure traces
-- `scripts/`: operational entry points
-- `src/autonomous_research_assistant_data/`: reusable application package
+- local development with VS Code and Conda
+- version control with GitHub
+- heavy processing in Google Colab
+- model and artifact interoperability with Hugging Face Hub
 
-Core design goals:
+The package uses layered environment-aware configuration:
 
-- modular, config-driven ingestion
-- async-ready I/O for arXiv downloads
-- resumable workflows with persisted state
-- duplicate detection through manifests
-- cloud- and Kaggle-friendly path strategy
-- future compatibility with RAG and agentic workflows
-- a conservative arXiv fallback path for Kaggle-safe validation runs
+- `configs/base.yaml`: shared defaults
+- `configs/local.yaml`: local development overrides
+- `configs/colab.yaml`: Google Colab overrides
+
+At runtime, scripts load `base.yaml` plus the selected environment config, and optionally apply one extra override file with `--config`.
 
 ## Folder Structure
 
@@ -44,7 +41,8 @@ Core design goals:
 project/
 ├── configs/
 │   ├── base.yaml
-│   └── kaggle.yaml
+│   ├── colab.yaml
+│   └── local.yaml
 ├── datasets/
 │   ├── external/
 │   ├── metadata/
@@ -63,6 +61,8 @@ project/
 │   ├── failed/
 │   └── ingestion/
 ├── notebooks/
+│   ├── README.md
+│   └── setup_colab.ipynb
 ├── scripts/
 │   ├── bootstrap_project.py
 │   ├── ingest_arxiv.py
@@ -71,60 +71,86 @@ project/
 │   └── validate_phase2.py
 ├── src/
 │   └── autonomous_research_assistant_data/
-│       ├── config.py
-│       ├── core/
-│       ├── ingestion/
-│       ├── models/
-│       ├── storage/
-│       ├── utils/
-│       └── validation/
+├── environment.yml
+├── pyproject.toml
 └── requirements.txt
 ```
 
-## Setup
+## Install
 
-1. Create an environment.
-2. Install dependencies from `requirements.txt`.
-3. Review `configs/base.yaml`.
-4. Run the bootstrap script to create directories.
-5. Launch source-specific ingestion scripts.
-
-Example:
+Local editable install:
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+conda create -n ara-data python=3.11 -y
+conda activate ara-data
 pip install -r requirements.txt
-python scripts/bootstrap_project.py --config configs/base.yaml
-python scripts/ingest_arxiv.py --config configs/base.yaml
-python scripts/ingest_arxiv_simple.py --config configs/base.yaml
-python scripts/ingest_datasets.py --config configs/base.yaml --datasets scifact fever msmarco
-python scripts/validate_phase2.py --config configs/base.yaml
+pip install -e .
 ```
 
-## Kaggle Workflow
+Conda environment:
 
-For low local storage usage:
+```powershell
+conda env create -f environment.yml
+conda activate autonomous-research-assistant-data
+```
 
-- keep only code locally
-- override paths with `configs/kaggle.yaml` when running in Kaggle
-- rely on Hugging Face cache and exported parquet artifacts in mounted Kaggle storage
-- use `scripts/ingest_arxiv_simple.py` for small, resumable arXiv validation runs
-- keep the async arXiv pipeline as the higher-throughput fallback for non-Kaggle environments
+## Environment-Aware Usage
 
-Example in Kaggle:
+Local workflow:
+
+```powershell
+python scripts/bootstrap_project.py --env local
+python scripts/ingest_arxiv_simple.py --env local
+python scripts/ingest_datasets.py --env local --datasets scifact fever msmarco
+python scripts/validate_phase2.py --env local
+```
+
+Google Colab workflow:
 
 ```python
-!python scripts/bootstrap_project.py --config configs/kaggle.yaml
-!python scripts/ingest_arxiv_simple.py --config configs/kaggle.yaml
-!python scripts/ingest_datasets.py --config configs/kaggle.yaml --datasets scifact fever msmarco
+!python scripts/bootstrap_project.py --env colab
+!python scripts/ingest_arxiv_simple.py --env colab
+!python scripts/ingest_datasets.py --env colab --datasets scifact fever msmarco
+!python scripts/validate_phase2.py --env colab
 ```
+
+Optional layered override:
+
+```powershell
+python scripts/ingest_datasets.py --env local --config configs/my_experiment.yaml
+```
+
+## Colab Support
+
+The package includes Colab utilities for:
+
+- runtime detection
+- optional Google Drive mounting
+- `/content/` and `/content/drive/MyDrive/` storage paths
+- GPU availability inspection
+- environment-specific bootstrap behavior
+
+See [setup_colab.ipynb](/C:/Users/siddh/ML_projects/research/notebooks/setup_colab.ipynb) for the guided Colab workflow.
+
+## Ingestion Modes
+
+Two arXiv ingestion paths are preserved:
+
+- `scripts/ingest_arxiv.py`: advanced async ingestion pipeline
+- `scripts/ingest_arxiv_simple.py`: conservative sequential fallback using the official `arxiv` package
+
+The dataset ingestion system is now more resilient for modern Hugging Face dataset loading:
+
+- layered compatibility checks
+- `datasets==2.19.1` target support
+- explicit logging for `trust_remote_code` compatibility
+- fallback strategies for legacy dataset script cases
+- exported metadata and manifest tracking for every dataset split
 
 ## Operational Notes
 
-- arXiv state is persisted in `datasets/state/ingestion_state.json`
+- arXiv and dataset state is persisted in `datasets/state/ingestion_state.json`
 - duplicate detection is managed through manifests in `datasets/metadata/manifests/`
-- metadata is written per record as JSON and summarized in manifests
-- all ingestion runs emit structured JSONL logs under `logs/`
-- `scripts/ingest_arxiv.py` remains the advanced async pipeline
-- `scripts/ingest_arxiv_simple.py` is the conservative fallback mode using the official `arxiv` package
+- metadata is written per record as JSON and summarized in parquet manifests
+- structured ingestion and failure logs are written under `logs/`
+- the storage layout stays compatible with future RAG, vector DB, and agentic AI phases
