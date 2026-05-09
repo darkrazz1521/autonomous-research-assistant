@@ -153,6 +153,178 @@ class ValidationConfig(BaseModel):
     fail_on_missing_manifest_entries: bool = False
 
 
+class PdfProcessingConfig(BaseModel):
+    source_pdf_dir: Path
+    source_metadata_dir: Path
+    front_matter_dir: Path
+    extracted_text_dir: Path
+    cleaned_text_dir: Path
+    repaired_text_dir: Path
+    sections_dir: Path
+    chunks_dir: Path
+    references_dir: Path
+    citations_dir: Path
+    equation_blocks_dir: Path
+    isolated_figures_dir: Path
+    isolated_tables_dir: Path
+    heading_analysis_dir: Path
+    dedup_reports_dir: Path
+    repair_reports_dir: Path
+    manifests_dir: Path
+    validation_dir: Path
+    reports_dir: Path
+    analytics_dir: Path
+    enabled: bool = True
+    extraction_backend: str = "pymupdf"
+    fallback_backends: list[str] = Field(default_factory=lambda: ["pdfplumber"])
+    max_papers_per_run: int = 25
+    batch_size: int = 5
+    overwrite_existing: bool = False
+    chunk_size: int = 450
+    chunk_overlap: int = 80
+    min_overlap_paragraphs: int = 1
+    max_overlap_paragraphs: int = 2
+    min_chunk_tokens: int = 120
+    max_chunk_tokens: int = 650
+    abstract_chunk_max_tokens: int = 220
+    repair_overlap_buffer_tokens: int = 140
+    paragraph_merge_line_threshold: int = 85
+    section_min_confidence: float = 0.45
+    layout_aware_default: bool = True
+    dedup_strict_default: bool = False
+    equation_repair_level: str = "balanced"
+    enable_column_reconstruction: bool = True
+    cleaning_rules: dict[str, Any] = Field(default_factory=dict)
+    validation_rules: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def resolve_paths(self) -> "PdfProcessingConfig":
+        for field_name in (
+            "source_pdf_dir",
+            "source_metadata_dir",
+            "front_matter_dir",
+            "extracted_text_dir",
+            "cleaned_text_dir",
+            "repaired_text_dir",
+            "sections_dir",
+            "chunks_dir",
+            "references_dir",
+            "citations_dir",
+            "equation_blocks_dir",
+            "isolated_figures_dir",
+            "isolated_tables_dir",
+            "heading_analysis_dir",
+            "dedup_reports_dir",
+            "repair_reports_dir",
+            "manifests_dir",
+            "validation_dir",
+            "reports_dir",
+            "analytics_dir",
+        ):
+            value = getattr(self, field_name).expanduser()
+            setattr(self, field_name, value)
+        return self
+
+
+class RetrievalEmbeddingConfig(BaseModel):
+    default_model: str = "BAAI/bge-base-en-v1.5"
+    supported_models: list[str] = Field(
+        default_factory=lambda: [
+            "BAAI/bge-base-en-v1.5",
+            "BAAI/bge-large-en-v1.5",
+            "intfloat/e5-base-v2",
+            "BAAI/bge-m3",
+        ]
+    )
+    batch_size: int = 16
+    normalize_embeddings: bool = True
+    max_length: int = 512
+    device: str = "auto"
+    deterministic_fallback_dim: int = 768
+    cache_enabled: bool = True
+    min_retrieval_quality_score: float = 0.55
+    include_flagged_chunks: bool = False
+
+
+class RetrievalVectorDbConfig(BaseModel):
+    default_backend: str = "faiss"
+    supported_backends: list[str] = Field(default_factory=lambda: ["faiss", "qdrant", "lancedb", "chroma"])
+    namespace: str = "scientific-corpus"
+    metric: str = "cosine"
+    rebuild_on_schema_change: bool = True
+    incremental_updates: bool = True
+    version: str = "v1"
+
+
+class RetrievalRerankerConfig(BaseModel):
+    enabled: bool = True
+    default_model: str = "BAAI/bge-reranker-base"
+    supported_models: list[str] = Field(
+        default_factory=lambda: [
+            "BAAI/bge-reranker-base",
+            "jinaai/jina-reranker-v1-turbo-en",
+            "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        ]
+    )
+    top_k_depth: int = 20
+    section_priority_boost: float = 0.08
+    citation_sensitivity_boost: float = 0.06
+
+
+class RetrievalSearchConfig(BaseModel):
+    dense_top_k: int = 20
+    sparse_top_k: int = 20
+    final_top_k: int = 10
+    hybrid_fusion: str = "rrf"
+    dense_weight: float = 0.65
+    sparse_weight: float = 0.35
+    rrf_k: int = 60
+    include_neighbors: bool = True
+    neighbor_window: int = 1
+    citation_expansion: bool = True
+    section_aware_boost: bool = True
+
+
+class RetrievalEvaluationConfig(BaseModel):
+    enabled: bool = True
+    default_top_k: int = 10
+    default_probe_count: int = 25
+    use_manual_probes: bool = True
+    use_scifact_when_available: bool = True
+
+
+class RetrievalConfig(BaseModel):
+    embeddings_dir: Path
+    vector_indexes_dir: Path
+    retrieval_cache_dir: Path
+    retrieval_analytics_dir: Path
+    rerank_cache_dir: Path
+    memory_graph_dir: Path
+    retrieval_evaluation_dir: Path
+    manifests_dir: Path
+    embedding: RetrievalEmbeddingConfig = Field(default_factory=RetrievalEmbeddingConfig)
+    vector_db: RetrievalVectorDbConfig = Field(default_factory=RetrievalVectorDbConfig)
+    reranker: RetrievalRerankerConfig = Field(default_factory=RetrievalRerankerConfig)
+    search: RetrievalSearchConfig = Field(default_factory=RetrievalSearchConfig)
+    evaluation: RetrievalEvaluationConfig = Field(default_factory=RetrievalEvaluationConfig)
+
+    @model_validator(mode="after")
+    def resolve_paths(self) -> "RetrievalConfig":
+        for field_name in (
+            "embeddings_dir",
+            "vector_indexes_dir",
+            "retrieval_cache_dir",
+            "retrieval_analytics_dir",
+            "rerank_cache_dir",
+            "memory_graph_dir",
+            "retrieval_evaluation_dir",
+            "manifests_dir",
+        ):
+            value = getattr(self, field_name).expanduser()
+            setattr(self, field_name, value)
+        return self
+
+
 class AppConfig(BaseModel):
     project_name: str
     runtime: RuntimeConfig
@@ -164,6 +336,8 @@ class AppConfig(BaseModel):
     arxiv: ArxivConfig
     datasets: dict[str, DatasetIngestionConfig]
     validation: ValidationConfig
+    pdf_processing: PdfProcessingConfig
+    retrieval: RetrievalConfig
 
     @property
     def profile(self) -> str:
@@ -206,5 +380,47 @@ def load_config(
         if not value.is_absolute():
             value = config.storage.root_dir / value
         setattr(config.logging, field_name, value)
+
+    for field_name in (
+        "source_pdf_dir",
+        "source_metadata_dir",
+        "front_matter_dir",
+        "extracted_text_dir",
+        "cleaned_text_dir",
+        "repaired_text_dir",
+        "sections_dir",
+        "chunks_dir",
+        "references_dir",
+        "citations_dir",
+        "equation_blocks_dir",
+        "isolated_figures_dir",
+        "isolated_tables_dir",
+        "heading_analysis_dir",
+        "dedup_reports_dir",
+        "repair_reports_dir",
+        "manifests_dir",
+        "validation_dir",
+        "reports_dir",
+        "analytics_dir",
+    ):
+        value = getattr(config.pdf_processing, field_name).expanduser()
+        if not value.is_absolute():
+            value = config.storage.root_dir / value
+        setattr(config.pdf_processing, field_name, value)
+
+    for field_name in (
+        "embeddings_dir",
+        "vector_indexes_dir",
+        "retrieval_cache_dir",
+        "retrieval_analytics_dir",
+        "rerank_cache_dir",
+        "memory_graph_dir",
+        "retrieval_evaluation_dir",
+        "manifests_dir",
+    ):
+        value = getattr(config.retrieval, field_name).expanduser()
+        if not value.is_absolute():
+            value = config.storage.root_dir / value
+        setattr(config.retrieval, field_name, value)
 
     return config

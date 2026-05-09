@@ -33,3 +33,15 @@ arxiv:
     max_results: 12
     delay_between_downloads_seconds: 8.0
     search_page_size: 30
+
+pdf_processing:
+  max_papers_per_run: 12
+  batch_size: 2
+  chunk_size: 420
+  chunk_overlap: 70
+  max_overlap_paragraphs: 1
+
+retrieval:
+  embedding:
+    batch_size: 24
+    device: auto

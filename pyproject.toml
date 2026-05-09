@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autonomous-research-assistant-data"
-version = "0.2.0"
-description = "Production-grade Phase 2 data collection infrastructure for autonomous scientific research workflows."
+version = "0.4.0"
+description = "Production-grade scientific data ingestion and PDF processing infrastructure for autonomous research workflows."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -17,7 +17,9 @@ dependencies = [
   "numpy==1.26.4",
   "packaging==24.1",
   "pandas==2.2.2",
+  "pdfplumber==0.11.4",
   "pyarrow==16.1.0",
+  "pymupdf==1.24.9",
   "pydantic==2.7.4",
   "PyYAML==6.0.1",
   "tqdm==4.66.4",

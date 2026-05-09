@@ -12,7 +12,7 @@ from autonomous_research_assistant_data.utils.colab import maybe_mount_google_dr
 
 
 def bootstrap_directories(config: AppConfig) -> None:
-    """Create the expected directory tree for Phase 2."""
+    """Create the expected directory tree for PDF processing and repair artifacts."""
     required_dirs = [
         config.storage.datasets_dir,
         config.storage.raw_dir,
@@ -32,6 +32,32 @@ def bootstrap_directories(config: AppConfig) -> None:
         config.storage.metadata_dir / "schemas",
         config.storage.logs_dir / "ingestion",
         config.storage.logs_dir / "failed",
+        config.pdf_processing.extracted_text_dir,
+        config.pdf_processing.cleaned_text_dir,
+        config.pdf_processing.repaired_text_dir,
+        config.pdf_processing.sections_dir,
+        config.pdf_processing.chunks_dir,
+        config.pdf_processing.front_matter_dir,
+        config.pdf_processing.references_dir,
+        config.pdf_processing.citations_dir,
+        config.pdf_processing.equation_blocks_dir,
+        config.pdf_processing.isolated_figures_dir,
+        config.pdf_processing.isolated_tables_dir,
+        config.pdf_processing.heading_analysis_dir,
+        config.pdf_processing.dedup_reports_dir,
+        config.pdf_processing.repair_reports_dir,
+        config.pdf_processing.manifests_dir,
+        config.pdf_processing.validation_dir,
+        config.pdf_processing.reports_dir,
+        config.pdf_processing.analytics_dir,
+        config.retrieval.embeddings_dir,
+        config.retrieval.vector_indexes_dir,
+        config.retrieval.retrieval_cache_dir,
+        config.retrieval.retrieval_analytics_dir,
+        config.retrieval.rerank_cache_dir,
+        config.retrieval.memory_graph_dir,
+        config.retrieval.retrieval_evaluation_dir,
+        config.retrieval.manifests_dir,
     ]
     for directory in required_dirs:
         if directory is not None:

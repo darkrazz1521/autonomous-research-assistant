@@ -19,9 +19,11 @@ class MetadataStore:
     def save_dataset_record(self, path: Path, record: DatasetArtifactRecord) -> None:
         write_json(path, record.model_dump(mode="json"))
 
+    def save_record(self, path: Path, payload: dict) -> None:
+        write_json(path, payload)
+
     def export_records_to_parquet(self, path: Path, records: list[dict]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         frame = pd.DataFrame(records)
         if not frame.empty:
             frame.to_parquet(path, index=False)
-

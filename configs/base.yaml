@@ -1,4 +1,4 @@
-project_name: autonomous-research-assistant-phase2
+project_name: autonomous-research-assistant-phase3
 
 runtime:
   environment: local
@@ -132,3 +132,136 @@ validation:
   verify_pdf_files: true
   verify_metadata_files: true
   fail_on_missing_manifest_entries: false
+
+pdf_processing:
+  enabled: true
+  source_pdf_dir: datasets/raw/arxiv/pdfs
+  source_metadata_dir: datasets/raw/arxiv/metadata
+  front_matter_dir: datasets/processed/front_matter
+  extracted_text_dir: datasets/processed/extracted_text
+  cleaned_text_dir: datasets/processed/cleaned_text
+  repaired_text_dir: datasets/processed/repaired_text
+  sections_dir: datasets/processed/sections
+  chunks_dir: datasets/processed/chunks
+  references_dir: datasets/processed/references
+  citations_dir: datasets/processed/citations
+  equation_blocks_dir: datasets/processed/equation_blocks
+  isolated_figures_dir: datasets/processed/isolated_figures
+  isolated_tables_dir: datasets/processed/isolated_tables
+  heading_analysis_dir: datasets/processed/heading_analysis
+  dedup_reports_dir: datasets/processed/dedup_reports
+  repair_reports_dir: datasets/processed/repair_reports
+  manifests_dir: datasets/processed/manifests
+  validation_dir: datasets/processed/validation
+  reports_dir: datasets/processed/reports
+  analytics_dir: datasets/processed/analytics
+  extraction_backend: pymupdf
+  fallback_backends:
+    - pdfplumber
+  max_papers_per_run: 25
+  batch_size: 5
+  overwrite_existing: false
+  chunk_size: 450
+  chunk_overlap: 80
+  min_overlap_paragraphs: 1
+  max_overlap_paragraphs: 2
+  min_chunk_tokens: 120
+  max_chunk_tokens: 650
+  abstract_chunk_max_tokens: 220
+  repair_overlap_buffer_tokens: 140
+  paragraph_merge_line_threshold: 85
+  section_min_confidence: 0.45
+  layout_aware_default: true
+  dedup_strict_default: false
+  equation_repair_level: balanced
+  enable_column_reconstruction: true
+  cleaning_rules:
+    remove_repeated_headers: true
+    remove_repeated_footers: true
+    remove_page_numbers: true
+    normalize_unicode: true
+    collapse_whitespace: true
+    deduplicate_lines: true
+    strip_reference_noise: false
+    dehyphenate_line_breaks: true
+    repair_broken_sentences: true
+    suppress_running_titles: true
+    filter_captions: true
+    filter_affiliations: true
+    filter_watermarks: true
+    smart_newline_reconstruction: true
+  validation_rules:
+    min_extraction_chars: 1500
+    min_chunk_chars: 250
+    max_noise_ratio: 0.35
+    max_duplicate_chunk_ratio: 0.2
+    max_tiny_chunk_ratio: 0.3
+    max_oversized_chunk_ratio: 0.1
+    min_retrieval_quality_score: 0.5
+    max_reference_leakage_count: 1
+    max_equation_fragmentation_count: 1
+
+retrieval:
+  embeddings_dir: datasets/embeddings
+  vector_indexes_dir: datasets/vector_indexes
+  retrieval_cache_dir: datasets/retrieval_cache
+  retrieval_analytics_dir: datasets/retrieval_analytics
+  rerank_cache_dir: datasets/rerank_cache
+  memory_graph_dir: datasets/memory_graph
+  retrieval_evaluation_dir: datasets/retrieval_evaluation
+  manifests_dir: datasets/vector_indexes/manifests
+  embedding:
+    default_model: BAAI/bge-base-en-v1.5
+    supported_models:
+      - BAAI/bge-base-en-v1.5
+      - BAAI/bge-large-en-v1.5
+      - intfloat/e5-base-v2
+      - BAAI/bge-m3
+    batch_size: 16
+    normalize_embeddings: true
+    max_length: 512
+    device: auto
+    deterministic_fallback_dim: 768
+    cache_enabled: true
+    min_retrieval_quality_score: 0.55
+    include_flagged_chunks: false
+  vector_db:
+    default_backend: faiss
+    supported_backends:
+      - faiss
+      - qdrant
+      - lancedb
+      - chroma
+    namespace: scientific-corpus
+    metric: cosine
+    rebuild_on_schema_change: true
+    incremental_updates: true
+    version: v1
+  reranker:
+    enabled: true
+    default_model: BAAI/bge-reranker-base
+    supported_models:
+      - BAAI/bge-reranker-base
+      - jinaai/jina-reranker-v1-turbo-en
+      - cross-encoder/ms-marco-MiniLM-L-6-v2
+    top_k_depth: 20
+    section_priority_boost: 0.08
+    citation_sensitivity_boost: 0.06
+  search:
+    dense_top_k: 20
+    sparse_top_k: 20
+    final_top_k: 10
+    hybrid_fusion: rrf
+    dense_weight: 0.65
+    sparse_weight: 0.35
+    rrf_k: 60
+    include_neighbors: true
+    neighbor_window: 1
+    citation_expansion: true
+    section_aware_boost: true
+  evaluation:
+    enabled: true
+    default_top_k: 10
+    default_probe_count: 25
+    use_manual_probes: true
+    use_scifact_when_available: true

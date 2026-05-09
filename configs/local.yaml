@@ -22,3 +22,12 @@ arxiv:
   simple_mode:
     max_results: 15
     delay_between_downloads_seconds: 7.0
+
+pdf_processing:
+  max_papers_per_run: 20
+  batch_size: 4
+  chunk_size: 460
+
+retrieval:
+  embedding:
+    batch_size: 8
