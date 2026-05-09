@@ -30,20 +30,32 @@ retry:
 arxiv:
   enabled: true
   base_url: https://export.arxiv.org/api/query
+
   categories:
     - cs.AI
     - cs.CL
     - cs.LG
-  batch_size: 100
-  max_api_results_per_run: 1000
-  max_pdf_downloads_per_run: 750
-  pdf_download_concurrency: 16
+
+  batch_size: 10
+
+  max_api_results_per_run: 30
+
+  max_pdf_downloads_per_run: 20
+
+  pdf_download_concurrency: 2
+
   request_timeout_seconds: 30
+
   download_timeout_seconds: 180
-  request_pause_seconds: 0.25
+
+  request_pause_seconds: 5
+
   user_agent: autonomous-research-assistant-phase2-kaggle/1.0
+
   incremental_lookback_days: 3
+
   save_metadata_format: json
+
   verify_existing_files: true
 
 datasets:
