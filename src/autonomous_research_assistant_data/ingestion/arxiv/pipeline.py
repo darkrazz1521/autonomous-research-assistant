@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 from tqdm.asyncio import tqdm
 
+from autonomous_research_assistant_data.ingestion.arxiv.common import ArxivStorageManager
 from autonomous_research_assistant_data.core.retry import retry_async
 from autonomous_research_assistant_data.core.time import utc_now
 from autonomous_research_assistant_data.ingestion.arxiv.client import ArxivClient
@@ -28,17 +29,14 @@ class ArxivIngestor(BaseIngestor):
         self.pdf_root = self.config.storage.raw_dir / "arxiv" / "pdfs"
         self.metadata_root = self.config.storage.raw_dir / "arxiv" / "metadata"
         self.failure_log = self.config.logging.failure_log_file
-
-    def _safe_id(self, arxiv_id: str) -> str:
-        return arxiv_id.replace("/", "_")
-
-    def _paper_paths(self, paper: ArxivPaperRecord) -> tuple[Path, Path]:
-        year = str(paper.published_at.year)
-        month = f"{paper.published_at.month:02d}"
-        safe_id = self._safe_id(paper.arxiv_id)
-        pdf_path = self.pdf_root / year / month / f"{safe_id}.pdf"
-        metadata_path = self.metadata_root / year / month / f"{safe_id}.json"
-        return pdf_path, metadata_path
+        self.storage_manager = ArxivStorageManager(
+            pdf_root=self.pdf_root,
+            metadata_root=self.metadata_root,
+            metadata_store=self.context.metadata_store,
+            manifest_store=self.context.manifest_store,
+            state_store=self.context.state_store,
+            verify_existing_files=self.config.arxiv.verify_existing_files,
+        )
 
     async def collect_candidates(self) -> list[ArxivPaperRecord]:
         max_results = self.config.arxiv.max_api_results_per_run
@@ -67,11 +65,7 @@ class ArxivIngestor(BaseIngestor):
         return collected
 
     def _already_ingested(self, paper: ArxivPaperRecord) -> bool:
-        pdf_path, metadata_path = self._paper_paths(paper)
-        manifest_hit = self.context.manifest_store.exists(paper.arxiv_id)
-        if not self.config.arxiv.verify_existing_files:
-            return manifest_hit
-        return manifest_hit and pdf_path.exists() and metadata_path.exists()
+        return self.storage_manager.already_ingested(paper)
 
     async def _download_pdf(
         self,
@@ -79,7 +73,7 @@ class ArxivIngestor(BaseIngestor):
         semaphore: asyncio.Semaphore,
         paper: ArxivPaperRecord,
     ) -> dict[str, Any]:
-        pdf_path, metadata_path = self._paper_paths(paper)
+        pdf_path, metadata_path = self.storage_manager.paper_paths(paper)
         ensure_directory(pdf_path.parent)
         ensure_directory(metadata_path.parent)
 
@@ -142,12 +136,7 @@ class ArxivIngestor(BaseIngestor):
             status = result["status"]
             if status == "failed":
                 stats["failed"] += 1
-                self.context.manifest_store.mark(
-                    paper.arxiv_id,
-                    source="arxiv",
-                    status="failed",
-                    payload={"error": result["error"], "pdf_url": paper.pdf_url},
-                )
+                self.storage_manager.mark_failure(paper, result["error"])
                 continue
 
             if status == "skipped":
@@ -158,19 +147,7 @@ class ArxivIngestor(BaseIngestor):
             paper.pdf_path = Path(result["pdf_path"])
             paper.metadata_path = Path(result["metadata_path"])
             paper.download_timestamp = utc_now()
-            self.context.metadata_store.save_arxiv_record(paper.metadata_path, paper)
-            self.context.manifest_store.mark(
-                paper.arxiv_id,
-                source="arxiv",
-                status=status,
-                payload={
-                    "title": paper.title,
-                    "categories": paper.categories,
-                    "updated_at": paper.updated_at.isoformat(),
-                    "pdf_path": str(paper.pdf_path),
-                    "metadata_path": str(paper.metadata_path),
-                },
-            )
+            self.storage_manager.persist_record(paper, status=status)
             saved_records.append(paper.model_dump(mode="json"))
             if last_updated_at is None or paper.updated_at.isoformat() > last_updated_at:
                 last_updated_at = paper.updated_at.isoformat()
@@ -179,9 +156,7 @@ class ArxivIngestor(BaseIngestor):
             summary_path = self.config.storage.metadata_dir / "arxiv_records_latest.parquet"
             self.context.metadata_store.export_records_to_parquet(summary_path, saved_records)
 
-        if last_updated_at:
-            self.context.state_store.set("arxiv.last_updated_at", last_updated_at)
-            self.context.state_store.set("arxiv.last_run_at", utc_now().isoformat())
+        self.storage_manager.update_watermark(last_updated_at)
 
         self.logger.info("Completed arXiv ingestion", extra={"context": stats})
         return stats

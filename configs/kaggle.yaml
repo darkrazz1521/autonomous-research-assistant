@@ -58,6 +58,16 @@ arxiv:
 
   verify_existing_files: true
 
+  simple_mode:
+    enabled: true
+    max_results: 12
+    delay_between_downloads_seconds: 8.0
+    search_page_size: 20
+    sort_by: submittedDate
+    sort_order: descending
+    metadata_only: false
+    resume_from_manifest: true
+
 datasets:
   scifact:
     enabled: true
@@ -95,4 +105,3 @@ validation:
   verify_pdf_files: true
   verify_metadata_files: true
   fail_on_missing_manifest_entries: false
-

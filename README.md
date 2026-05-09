@@ -36,6 +36,7 @@ Core design goals:
 - duplicate detection through manifests
 - cloud- and Kaggle-friendly path strategy
 - future compatibility with RAG and agentic workflows
+- a conservative arXiv fallback path for Kaggle-safe validation runs
 
 ## Folder Structure
 
@@ -65,6 +66,7 @@ project/
 ├── scripts/
 │   ├── bootstrap_project.py
 │   ├── ingest_arxiv.py
+│   ├── ingest_arxiv_simple.py
 │   ├── ingest_datasets.py
 │   └── validate_phase2.py
 ├── src/
@@ -95,6 +97,7 @@ python -m venv .venv
 pip install -r requirements.txt
 python scripts/bootstrap_project.py --config configs/base.yaml
 python scripts/ingest_arxiv.py --config configs/base.yaml
+python scripts/ingest_arxiv_simple.py --config configs/base.yaml
 python scripts/ingest_datasets.py --config configs/base.yaml --datasets scifact fever msmarco
 python scripts/validate_phase2.py --config configs/base.yaml
 ```
@@ -106,13 +109,14 @@ For low local storage usage:
 - keep only code locally
 - override paths with `configs/kaggle.yaml` when running in Kaggle
 - rely on Hugging Face cache and exported parquet artifacts in mounted Kaggle storage
-- use incremental arXiv syncs instead of full historical downloads
+- use `scripts/ingest_arxiv_simple.py` for small, resumable arXiv validation runs
+- keep the async arXiv pipeline as the higher-throughput fallback for non-Kaggle environments
 
 Example in Kaggle:
 
 ```python
 !python scripts/bootstrap_project.py --config configs/kaggle.yaml
-!python scripts/ingest_arxiv.py --config configs/kaggle.yaml
+!python scripts/ingest_arxiv_simple.py --config configs/kaggle.yaml
 !python scripts/ingest_datasets.py --config configs/kaggle.yaml --datasets scifact fever msmarco
 ```
 
@@ -122,4 +126,5 @@ Example in Kaggle:
 - duplicate detection is managed through manifests in `datasets/metadata/manifests/`
 - metadata is written per record as JSON and summarized in manifests
 - all ingestion runs emit structured JSONL logs under `logs/`
-
+- `scripts/ingest_arxiv.py` remains the advanced async pipeline
+- `scripts/ingest_arxiv_simple.py` is the conservative fallback mode using the official `arxiv` package

@@ -45,6 +45,15 @@ arxiv:
   incremental_lookback_days: 2
   save_metadata_format: json
   verify_existing_files: true
+  simple_mode:
+    enabled: true
+    max_results: 15
+    delay_between_downloads_seconds: 7.0
+    search_page_size: 20
+    sort_by: submittedDate
+    sort_order: descending
+    metadata_only: false
+    resume_from_manifest: true
 
 datasets:
   scifact:
@@ -83,4 +92,3 @@ validation:
   verify_pdf_files: true
   verify_metadata_files: true
   fail_on_missing_manifest_entries: false
-

@@ -56,6 +56,16 @@ class RetryConfig(BaseModel):
 
 
 class ArxivConfig(BaseModel):
+    class SimpleModeConfig(BaseModel):
+        enabled: bool = True
+        max_results: int = 15
+        delay_between_downloads_seconds: float = 7.0
+        search_page_size: int = 20
+        sort_by: str = "submittedDate"
+        sort_order: str = "descending"
+        metadata_only: bool = False
+        resume_from_manifest: bool = True
+
     enabled: bool = True
     base_url: str
     categories: list[str]
@@ -70,6 +80,7 @@ class ArxivConfig(BaseModel):
     incremental_lookback_days: int = 2
     save_metadata_format: str = "json"
     verify_existing_files: bool = True
+    simple_mode: SimpleModeConfig = Field(default_factory=SimpleModeConfig)
 
 
 class DatasetIngestionConfig(BaseModel):
@@ -106,4 +117,3 @@ def load_config(config_path: str | Path) -> AppConfig:
     path = Path(config_path)
     payload: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8"))
     return AppConfig.model_validate(payload)
-
