@@ -121,7 +121,11 @@ class FaissVectorStore:
             self._index = self._faiss.read_index(str(faiss_path))
             self._vectors = np.asarray([record.embedding for record in records], dtype=np.float32)
         else:
-            self._vectors = np.load(self._vectors_path(namespace))
+            vectors_path = self._vectors_path(namespace)
+            if vectors_path.exists():
+                self._vectors = np.load(vectors_path)
+            else:
+                self._vectors = np.asarray([record.embedding for record in records], dtype=np.float32)
             self._index = None
 
     def search(self, vector: list[float], *, top_k: int, namespace: str) -> list[tuple[str, float]]:
@@ -144,4 +148,3 @@ class FaissVectorStore:
     @property
     def records(self) -> dict[str, EmbeddingRecord]:
         return self._record_map
-

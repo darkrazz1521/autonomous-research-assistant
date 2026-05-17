@@ -384,6 +384,100 @@ class RetrievalConfig(BaseModel):
         return self
 
 
+class RagGenerationConfig(BaseModel):
+    provider: str = "heuristic"
+    model_name: str = "heuristic-grounded-generator"
+    api_base: str | None = None
+    api_key_env_var: str = "OPENAI_API_KEY"
+    temperature: float = 0.1
+    top_p: float = 0.95
+    max_tokens: int = 700
+    context_window: int = 4096
+    repetition_penalty: float = 1.05
+    stop_sequences: list[str] = Field(default_factory=list)
+    seed: int = 42
+    streaming: bool = False
+    timeout_seconds: int = 60
+    max_retries: int = 2
+    deterministic_fallback_enabled: bool = True
+
+
+class RagGroundingConfig(BaseModel):
+    min_grounding_score: float = 0.55
+    max_hallucination_probability: float = 0.45
+    min_citation_coverage: float = 0.60
+    low_confidence_warning_threshold: float = 0.50
+
+
+class RagSynthesisConfig(BaseModel):
+    max_evidence_chunks: int = 8
+    max_sentences_per_chunk: int = 3
+    merge_overlapping_evidence: bool = True
+    inline_citation_style: str = "paper_section"
+    bibliography_enabled: bool = True
+
+
+class RagMultiHopConfig(BaseModel):
+    enabled: bool = False
+    max_hops: int = 2
+    follow_up_queries_per_hop: int = 2
+    top_k_per_hop: int = 6
+    include_concept_chaining: bool = True
+    include_entity_expansion: bool = True
+
+
+class RagAnswerQualityConfig(BaseModel):
+    min_overall_answer_quality_score: float = 0.50
+    redundancy_penalty_weight: float = 0.15
+    factual_consistency_weight: float = 0.25
+    retrieval_alignment_weight: float = 0.20
+
+
+class RagMemoryConfig(BaseModel):
+    enabled: bool = True
+    max_history_items: int = 20
+    max_active_topics: int = 12
+    save_sessions_by_default: bool = True
+
+
+class RagPromptConfig(BaseModel):
+    max_context_chunks: int = 8
+    max_prompt_chars: int = 16000
+    qa_template: str = "qa"
+    summarization_template: str = "summarization"
+    comparison_template: str = "comparison"
+    contradiction_template: str = "contradiction"
+    literature_review_template: str = "literature_review"
+
+
+class RagConfig(BaseModel):
+    rag_cache_dir: Path
+    rag_outputs_dir: Path
+    research_sessions_dir: Path
+    rag_evaluation_dir: Path
+    generated_answers_dir: Path
+    generation: RagGenerationConfig = Field(default_factory=RagGenerationConfig)
+    grounding: RagGroundingConfig = Field(default_factory=RagGroundingConfig)
+    synthesis: RagSynthesisConfig = Field(default_factory=RagSynthesisConfig)
+    multi_hop: RagMultiHopConfig = Field(default_factory=RagMultiHopConfig)
+    answer_quality: RagAnswerQualityConfig = Field(default_factory=RagAnswerQualityConfig)
+    memory: RagMemoryConfig = Field(default_factory=RagMemoryConfig)
+    prompts: RagPromptConfig = Field(default_factory=RagPromptConfig)
+
+    @model_validator(mode="after")
+    def resolve_paths(self) -> "RagConfig":
+        for field_name in (
+            "rag_cache_dir",
+            "rag_outputs_dir",
+            "research_sessions_dir",
+            "rag_evaluation_dir",
+            "generated_answers_dir",
+        ):
+            value = getattr(self, field_name).expanduser()
+            setattr(self, field_name, value)
+        return self
+
+
 class AppConfig(BaseModel):
     project_name: str
     runtime: RuntimeConfig
@@ -397,6 +491,7 @@ class AppConfig(BaseModel):
     validation: ValidationConfig
     pdf_processing: PdfProcessingConfig
     retrieval: RetrievalConfig
+    rag: RagConfig
 
     @property
     def profile(self) -> str:
@@ -481,5 +576,17 @@ def load_config(
         if not value.is_absolute():
             value = config.storage.root_dir / value
         setattr(config.retrieval, field_name, value)
+
+    for field_name in (
+        "rag_cache_dir",
+        "rag_outputs_dir",
+        "research_sessions_dir",
+        "rag_evaluation_dir",
+        "generated_answers_dir",
+    ):
+        value = getattr(config.rag, field_name).expanduser()
+        if not value.is_absolute():
+            value = config.storage.root_dir / value
+        setattr(config.rag, field_name, value)
 
     return config

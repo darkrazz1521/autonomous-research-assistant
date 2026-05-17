@@ -36,3 +36,10 @@ retrieval:
     max_table_probability: 0.55
     max_noise_score: 0.60
     min_quality_score: 0.45
+
+rag:
+  generation:
+    provider: heuristic
+    streaming: false
+  multi_hop:
+    enabled: true

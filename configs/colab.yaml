@@ -2,16 +2,20 @@ runtime:
   environment: colab
 
 storage:
-  root_dir: /content
-  datasets_dir: /content/datasets
-  raw_dir: /content/datasets/raw
-  processed_dir: /content/datasets/processed
-  metadata_dir: /content/datasets/metadata
-  external_dir: /content/datasets/external
-  state_dir: /content/datasets/state
-  logs_dir: /content/logs
-  huggingface_cache_dir: /content/datasets/external/hf_cache
-  huggingface_home_dir: /content/datasets/external/hf_home
+  root_dir: /content/autonomous-research-assistant
+  datasets_dir: /content/autonomous-research-assistant/datasets
+
+  raw_dir: /content/autonomous-research-assistant/datasets/raw
+  processed_dir: /content/autonomous-research-assistant/datasets/processed
+  metadata_dir: /content/autonomous-research-assistant/datasets/metadata
+  external_dir: /content/autonomous-research-assistant/datasets/external
+  state_dir: /content/autonomous-research-assistant/datasets/state
+
+  logs_dir: /content/autonomous-research-assistant/logs
+
+  huggingface_cache_dir: /content/autonomous-research-assistant/datasets/external/hf_cache
+  huggingface_home_dir: /content/autonomous-research-assistant/datasets/external/hf_home
+
   local_source_code_only: true
 
 colab:
@@ -29,6 +33,7 @@ arxiv:
   pdf_download_concurrency: 2
   request_pause_seconds: 3.0
   download_timeout_seconds: 180
+
   simple_mode:
     max_results: 12
     delay_between_downloads_seconds: 8.0
@@ -37,6 +42,7 @@ arxiv:
 pdf_processing:
   max_papers_per_run: 12
   batch_size: 2
+
   chunk_size: 420
   chunk_overlap: 70
   max_overlap_paragraphs: 1
@@ -45,8 +51,18 @@ retrieval:
   embedding:
     batch_size: 24
     device: auto
+
   quality:
     min_semantic_density: 0.35
     max_table_probability: 0.55
     max_noise_score: 0.60
     min_quality_score: 0.45
+
+rag:
+  generation:
+    provider: heuristic
+    streaming: false
+    timeout_seconds: 90
+  prompts:
+    max_context_chunks: 6
+    max_prompt_chars: 12000

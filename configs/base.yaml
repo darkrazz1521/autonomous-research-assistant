@@ -306,3 +306,62 @@ retrieval:
     sparse_weight: 0.25
     rerank_weight: 0.20
     normalize_dense_sparse: true
+
+rag:
+  rag_cache_dir: datasets/rag_cache
+  rag_outputs_dir: datasets/rag_outputs
+  research_sessions_dir: datasets/research_sessions
+  rag_evaluation_dir: datasets/rag_evaluation
+  generated_answers_dir: datasets/generated_answers
+  generation:
+    provider: heuristic
+    model_name: heuristic-grounded-generator
+    api_base: null
+    api_key_env_var: OPENAI_API_KEY
+    temperature: 0.1
+    top_p: 0.95
+    max_tokens: 700
+    context_window: 4096
+    repetition_penalty: 1.05
+    stop_sequences: []
+    seed: 42
+    streaming: false
+    timeout_seconds: 60
+    max_retries: 2
+    deterministic_fallback_enabled: true
+  grounding:
+    min_grounding_score: 0.55
+    max_hallucination_probability: 0.45
+    min_citation_coverage: 0.60
+    low_confidence_warning_threshold: 0.50
+  synthesis:
+    max_evidence_chunks: 8
+    max_sentences_per_chunk: 3
+    merge_overlapping_evidence: true
+    inline_citation_style: paper_section
+    bibliography_enabled: true
+  multi_hop:
+    enabled: false
+    max_hops: 2
+    follow_up_queries_per_hop: 2
+    top_k_per_hop: 6
+    include_concept_chaining: true
+    include_entity_expansion: true
+  answer_quality:
+    min_overall_answer_quality_score: 0.50
+    redundancy_penalty_weight: 0.15
+    factual_consistency_weight: 0.25
+    retrieval_alignment_weight: 0.20
+  memory:
+    enabled: true
+    max_history_items: 20
+    max_active_topics: 12
+    save_sessions_by_default: true
+  prompts:
+    max_context_chunks: 8
+    max_prompt_chars: 16000
+    qa_template: qa
+    summarization_template: summarization
+    comparison_template: comparison
+    contradiction_template: contradiction
+    literature_review_template: literature_review

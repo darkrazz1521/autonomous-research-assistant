@@ -58,6 +58,11 @@ def bootstrap_directories(config: AppConfig) -> None:
         config.retrieval.memory_graph_dir,
         config.retrieval.retrieval_evaluation_dir,
         config.retrieval.manifests_dir,
+        config.rag.rag_cache_dir,
+        config.rag.rag_outputs_dir,
+        config.rag.research_sessions_dir,
+        config.rag.rag_evaluation_dir,
+        config.rag.generated_answers_dir,
     ]
     for directory in required_dirs:
         if directory is not None:

@@ -403,3 +403,115 @@ class EvaluationReport(BaseModel):
     citation_grounding_score: float = 0.0
     latency_ms_mean: float = 0.0
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class GenerationMetadata(BaseModel):
+    provider: str
+    model_name: str
+    backend: str
+    temperature: float = 0.0
+    top_p: float = 1.0
+    max_tokens: int = 0
+    streaming: bool = False
+    seed: int | None = None
+    latency_ms: float = 0.0
+    prompt_chars: int = 0
+    completion_chars: int = 0
+    extra: dict[str, Any] = Field(default_factory=dict)
+
+
+class RAGEvidenceChunk(BaseModel):
+    chunk_id: str
+    paper_id: str
+    section_name: str
+    canonical_section_label: str | None = None
+    quote: str = ""
+    score: float = 0.0
+    citations: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class RAGCitationRecord(BaseModel):
+    citation_label: str
+    paper_id: str
+    section_name: str
+    chunk_id: str
+    bibliography_entry: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class GroundingReport(BaseModel):
+    grounding_score: float = 0.0
+    unsupported_claim_ratio: float = 0.0
+    hallucination_probability: float = 0.0
+    citation_coverage: float = 0.0
+    evidence_density: float = 0.0
+    contradiction_score: float = 0.0
+    low_confidence_warnings: list[str] = Field(default_factory=list)
+    unsupported_claims: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class AnswerQualityReport(BaseModel):
+    citation_density: float = 0.0
+    grounding_score: float = 0.0
+    semantic_completeness: float = 0.0
+    redundancy_score: float = 0.0
+    factual_consistency: float = 0.0
+    retrieval_alignment: float = 0.0
+    synthesis_quality: float = 0.0
+    overall_answer_quality_score: float = 0.0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class RAGAnswer(BaseModel):
+    query: str
+    answer: str
+    citations: list[RAGCitationRecord] = Field(default_factory=list)
+    evidence_chunks: list[RAGEvidenceChunk] = Field(default_factory=list)
+    confidence_score: float = 0.0
+    hallucination_score: float = 0.0
+    retrieval_metadata: dict[str, Any] = Field(default_factory=dict)
+    generation_metadata: GenerationMetadata | None = None
+    grounding_report: GroundingReport | None = None
+    answer_quality_report: AnswerQualityReport | None = None
+    conversation_id: str | None = None
+    multi_hop_trace: dict[str, Any] = Field(default_factory=dict)
+    bibliography: list[str] = Field(default_factory=list)
+    generated_at: datetime | None = None
+
+
+class ConversationTurn(BaseModel):
+    turn_id: str
+    query: str
+    answer: str
+    cited_paper_ids: list[str] = Field(default_factory=list)
+    active_topics: list[str] = Field(default_factory=list)
+    unresolved_questions: list[str] = Field(default_factory=list)
+    created_at: datetime
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ResearchSessionRecord(BaseModel):
+    conversation_id: str
+    turns: list[ConversationTurn] = Field(default_factory=list)
+    discussed_papers: list[str] = Field(default_factory=list)
+    active_research_topics: list[str] = Field(default_factory=list)
+    unresolved_questions: list[str] = Field(default_factory=list)
+    user_research_interests: list[str] = Field(default_factory=list)
+    citation_reuse: list[str] = Field(default_factory=list)
+    updated_at: datetime
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class RAGEvaluationReport(BaseModel):
+    evaluation_id: str
+    probe_count: int
+    answer_grounding: float = 0.0
+    citation_correctness: float = 0.0
+    retrieval_relevance: float = 0.0
+    answer_completeness: float = 0.0
+    hallucination_rate: float = 0.0
+    latency_ms_mean: float = 0.0
+    synthesis_quality: float = 0.0
+    metadata: dict[str, Any] = Field(default_factory=dict)
