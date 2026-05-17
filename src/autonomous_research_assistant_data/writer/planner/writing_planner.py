@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from autonomous_research_assistant_data.config import AppConfig
 from autonomous_research_assistant_data.models.common import OutlinePlan, OutlineSectionRecord, QueryUnderstandingResult, WritingPlan, WritingSectionPlan
+from autonomous_research_assistant_data.writer.planner.rhetorical_planner import RhetoricalPlanner
 
 
 class WritingPlanner:
@@ -11,6 +12,7 @@ class WritingPlanner:
 
     def __init__(self, config: AppConfig) -> None:
         self.config = config
+        self.rhetorical_planner = RhetoricalPlanner()
 
     def _estimate_sufficiency(self, section: OutlineSectionRecord) -> float:
         title = section.title.lower()
@@ -38,7 +40,12 @@ class WritingPlanner:
         flattened = self._flatten(outline.sections)
         sequence: list[WritingSectionPlan] = []
         prior_ids: list[str] = []
+        rhetorical_traces: dict[str, object] = {}
         for section in flattened[: self.config.writer.max_sections]:
+            rhetorical_plan = self.rhetorical_planner.plan(
+                WritingSectionPlan(section_id=section.section_id, title=section.title, objective=section.objective),
+                understanding,
+            )
             sequence.append(
                 WritingSectionPlan(
                     section_id=section.section_id,
@@ -50,9 +57,10 @@ class WritingPlanner:
                     required_terms=list(dict.fromkeys([*section.required_evidence, *understanding.entities[:2], *understanding.target_topics[:4]])),
                     evidence_sufficiency_estimate=self._estimate_sufficiency(section),
                     subsection_ids=[child.section_id for child in section.subsections],
-                    metadata={"query_type": understanding.query_type},
+                    metadata={"query_type": understanding.query_type, "rhetorical_plan": rhetorical_plan},
                 )
             )
+            rhetorical_traces[section.section_id] = rhetorical_plan
             prior_ids.append(section.section_id)
         return WritingPlan(
             topic=topic,
@@ -60,6 +68,9 @@ class WritingPlanner:
             title=outline.title,
             section_sequence=sequence,
             iterative_drafting_enabled=True,
-            metadata={"section_count": len(sequence), "outline_missing_evidence_areas": outline.missing_evidence_areas},
+            metadata={
+                "section_count": len(sequence),
+                "outline_missing_evidence_areas": outline.missing_evidence_areas,
+                "rhetorical_traces": rhetorical_traces,
+            },
         )
-

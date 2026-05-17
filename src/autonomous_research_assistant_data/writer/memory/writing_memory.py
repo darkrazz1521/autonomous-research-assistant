@@ -53,12 +53,28 @@ class WritingMemoryStore:
             terminology=draft.terminology,
             repeated_concepts=list(draft.metadata.get("repeated_concepts", [])),
             unresolved_gaps=draft.unresolved_gaps,
+            metadata={
+                "claim_texts": list(draft.metadata.get("claim_texts", [])),
+                "discourse_trace": dict(draft.metadata.get("discourse_trace", {})),
+                "redundancy_score": float(draft.answer_quality_report.redundancy_score if draft.answer_quality_report else 0.0),
+            },
         )
         session.writing_memory = [item for item in session.writing_memory if item.section_id != draft.section_id] + [entry]
         session.used_citations = list(dict.fromkeys(session.used_citations + [item.citation_label for item in draft.citations]))
         session.unresolved_gaps = list(dict.fromkeys(session.unresolved_gaps + draft.unresolved_gaps))
         for term in draft.terminology:
             session.terminology_map.setdefault(term.lower(), term)
+        session.metadata.setdefault("claim_memory", [])
+        session.metadata["claim_memory"] = list(dict.fromkeys(session.metadata["claim_memory"] + list(draft.metadata.get("claim_texts", []))))[-40:]
+        session.metadata.setdefault("transition_memory", [])
+        opening = draft.metadata.get("discourse_trace", {}).get("opening")
+        if opening:
+            session.metadata["transition_memory"] = list(dict.fromkeys(session.metadata["transition_memory"] + [opening]))[-20:]
+        session.metadata.setdefault("citation_reuse", {})
+        for citation in draft.citations:
+            session.metadata["citation_reuse"][citation.citation_label] = int(session.metadata["citation_reuse"].get(citation.citation_label, 0)) + 1
+        session.metadata.setdefault("section_redundancy", {})
+        session.metadata["section_redundancy"][draft.section_id] = float(draft.answer_quality_report.redundancy_score if draft.answer_quality_report else 0.0)
         self.save(session)
         return session
 
@@ -69,4 +85,3 @@ class WritingMemoryStore:
 
     def prior_titles(self, session: WriterSessionRecord) -> list[str]:
         return [section.title for section in session.sections]
-

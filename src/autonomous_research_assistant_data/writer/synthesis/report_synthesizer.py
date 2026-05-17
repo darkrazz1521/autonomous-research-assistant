@@ -22,19 +22,13 @@ class ReportSynthesizer:
 
     def _introduction(self, topic: str, report_type: str, sections: list[SectionDraft]) -> str:
         if sections:
-            return (
-                f"This {report_type.replace('-', ' ')} examines {topic} using the retrieved scientific corpus. "
-                f"The report organizes the evidence around {', '.join(section.title.lower() for section in sections[:3])}."
-            )
+            return self.style_controller.introduction(topic, report_type, [section.title for section in sections])
         return f"This report examines {topic} using grounded retrieval and citation-aware synthesis."
 
     def _conclusion(self, sections: list[SectionDraft], session: WriterSessionRecord | None) -> str:
         summaries = [section.summary for section in sections[-2:] if section.summary]
         unresolved = session.unresolved_gaps[:3] if session else []
-        body = " ".join(summaries) if summaries else "The report synthesizes the strongest retrieved evidence while retaining uncertainty where the corpus is incomplete."
-        if unresolved:
-            body += f" Remaining open issues include {', '.join(unresolved)}."
-        return body.strip()
+        return self.style_controller.conclusion(unresolved, summaries)
 
     def _content(self, outline: OutlinePlan | None, sections: list[SectionDraft]) -> str:
         blocks: list[str] = []
@@ -98,5 +92,9 @@ class ReportSynthesizer:
             metadata={
                 "section_count": len(sections),
                 "repeated_idea_candidates": [section.title for section in sections if section.answer_quality_report and section.answer_quality_report.redundancy_score > 0.4],
+                "grounding_confidence_mean": round(
+                    sum(float(citation.metadata.get("grounding_confidence", 0.0)) for citation in deduped_citations) / max(len(deduped_citations), 1),
+                    6,
+                ),
             },
         )

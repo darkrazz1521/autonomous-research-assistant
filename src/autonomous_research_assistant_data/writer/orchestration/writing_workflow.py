@@ -78,7 +78,51 @@ class WritingWorkflow:
                 section.section_id: float(section.grounding_report.grounding_score if section.grounding_report else 0.0)
                 for section in report.sections
             },
-            metadata={"generated_at": utc_now(), "report_id": report.report_id},
+            metadata={
+                "generated_at": utc_now(),
+                "report_id": report.report_id,
+                "synthesis_decisions": {
+                    section.section_id: list(section.metadata.get("writing_decisions", []))
+                    for section in report.sections
+                },
+                "revision_traces": {
+                    section.section_id: [item.metadata for item in section.revision_history]
+                    for section in report.sections
+                },
+                "redundancy_removal": {
+                    section.section_id: sum(int(item.metadata.get("rewrite_trace", {}).get("redundancy", {}).get("removed_sentences", 0)) for item in section.revision_history)
+                    for section in report.sections
+                },
+                "evidence_merging": {
+                    section.section_id: dict(section.metadata.get("synthesis_trace", {}))
+                    for section in report.sections
+                },
+                "paragraph_quality_reports": {
+                    section.section_id: {
+                        "paragraph_count": len([paragraph for paragraph in section.content.split("\n\n") if paragraph.strip()]),
+                        "discourse_diversity": float(section.revision_history[-1].metadata.get("discourse_diversity", 0.0)) if section.revision_history else 0.0,
+                        "transition_diversity": float(section.metadata.get("transition_diversity", 0.0)),
+                    }
+                    for section in report.sections
+                },
+                "grounding_confidence": {
+                    section.section_id: (
+                        sum(float(citation.metadata.get("grounding_confidence", 0.0)) for citation in section.citations) / max(len(section.citations), 1)
+                        if section.citations
+                        else 0.0
+                    )
+                    for section in report.sections
+                },
+                "discourse_traces": {section.section_id: dict(section.metadata.get("discourse_trace", {})) for section in report.sections},
+                "paraphrase_decisions": {section.section_id: list(section.metadata.get("paraphrase_trace", [])) for section in report.sections},
+                "claim_graph_summaries": {section.section_id: dict(section.metadata.get("claim_graph_summary", {})) for section in report.sections},
+                "rhetorical_planning_traces": {section.section_id: dict(section.metadata.get("rhetorical_plan", {})) for section in report.sections},
+                "equation_normalization_reports": {section.section_id: list(section.metadata.get("normalization_reports", [])) for section in report.sections},
+                "transition_diversity_metrics": {
+                    section.section_id: float(section.metadata.get("transition_diversity", 0.0))
+                    for section in report.sections
+                },
+            },
         )
         write_json(self.config.writer.writer_observability_dir / "latest_writer_observability.json", observability.model_dump(mode="json"))
         append_jsonl(self.config.writer.writer_observability_dir / "writer_observability_log.jsonl", observability.model_dump(mode="json"))
@@ -95,7 +139,21 @@ class WritingWorkflow:
         revision_passes: int | None = None,
         citation_style: str | None = None,
         export_format: str | None = None,
+        discourse_refinement: bool = False,
+        paraphrase: bool = False,
+        claim_dedup: bool = False,
+        scientific_normalization: bool = False,
+        rhetorical_planning: bool = False,
+        anti_repetition: bool = False,
     ):
+        quality_controls = {
+            "discourse_refinement": discourse_refinement,
+            "paraphrase": paraphrase,
+            "claim_dedup": claim_dedup,
+            "scientific_normalization": scientific_normalization,
+            "rhetorical_planning": rhetorical_planning,
+            "anti_repetition": anti_repetition,
+        }
         understanding: QueryUnderstandingResult = self.query_understanding.analyze(topic)
         outline = self.outline_planner.build(topic, report_type, understanding, max_sections=max_sections)
         plan = self.writing_planner.build(topic, report_type, outline, understanding)
@@ -118,10 +176,23 @@ class WritingWorkflow:
                 evidence,
                 style=style or self.config.writer.style,
                 depth=depth,
+                understanding=understanding,
                 citation_manager=citation_manager,
                 session=session,
+                quality_controls=quality_controls,
             )
-            revised = self.revision_engine.revise(draft, evidence, passes=revision_passes or self.config.writer.max_revision_passes)
+            prior_texts = [section.content for section in final_sections]
+            revised = self.revision_engine.revise(
+                draft,
+                evidence,
+                passes=revision_passes or self.config.writer.max_revision_passes,
+                previous_title=final_sections[-1].title if final_sections else None,
+                previous_section_texts=prior_texts,
+                quality_controls=quality_controls,
+            )
+            revised.metadata["transition_diversity"] = float(
+                revised.revision_history[-1].metadata.get("discourse_diversity", 0.0) if revised.revision_history else 0.0
+            )
             final_sections.append(revised)
             session = self.memory.add_section(session, revised)
         report_id = f"report-{utc_now().strftime('%Y%m%d%H%M%S')}"
@@ -143,7 +214,7 @@ class WritingWorkflow:
         report.evaluation = evaluation
         artifact_paths = self.report_builder.persist(report)
         report.metadata["artifact_paths"] = artifact_paths
-        self.report_builder.persist(report)
+        report.metadata["quality_controls"] = quality_controls
         self.memory.save(session)
         self._write_observability(session, report)
         write_json(self.config.writer.writer_evaluation_dir / f"{evaluation.evaluation_id}.json", evaluation.model_dump(mode="json"))

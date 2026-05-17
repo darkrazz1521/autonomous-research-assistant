@@ -28,6 +28,12 @@ def main() -> None:
     parser.add_argument("--grounded", action="store_true", help="Retained for compatibility with grounded writing workflows.")
     parser.add_argument("--citation-style", help="Citation style: ieee, apa, or scientific.")
     parser.add_argument("--export-format", help="Export format: markdown, json, or structured.")
+    parser.add_argument("--discourse-refinement", action="store_true", help="Enable discourse variation and anti-template refinement.")
+    parser.add_argument("--paraphrase", action="store_true", help="Enable paraphrase-oriented synthesis and revision refinements.")
+    parser.add_argument("--claim-dedup", action="store_true", help="Suppress repeated claims across sections.")
+    parser.add_argument("--scientific-normalization", action="store_true", help="Normalize equations and table fragments into prose.")
+    parser.add_argument("--rhetorical-planning", action="store_true", help="Use section-specific rhetorical planning policies.")
+    parser.add_argument("--anti-repetition", action="store_true", help="Apply extra repetition blocking during revision.")
     parser.add_argument("--embedding-model", help="Override the configured embedding model.")
     parser.add_argument("--vector-db", help="Override the configured vector store backend.")
     args = parser.parse_args()
@@ -48,6 +54,12 @@ def main() -> None:
         revision_passes=args.revision_passes,
         citation_style=args.citation_style,
         export_format=args.export_format,
+        discourse_refinement=args.discourse_refinement,
+        paraphrase=args.paraphrase,
+        claim_dedup=args.claim_dedup,
+        scientific_normalization=args.scientific_normalization,
+        rhetorical_planning=args.rhetorical_planning,
+        anti_repetition=args.anti_repetition,
     )
     print(json.dumps(report.model_dump(mode="json"), indent=2, default=str))
 
