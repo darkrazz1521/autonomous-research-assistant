@@ -387,6 +387,15 @@ class RetrievalConfig(BaseModel):
 class RagGenerationConfig(BaseModel):
     provider: str = "heuristic"
     model_name: str = "heuristic-grounded-generator"
+    supported_models: list[str] = Field(
+        default_factory=lambda: [
+            "heuristic-grounded-generator",
+            "Qwen2.5",
+            "Llama 3",
+            "DeepSeek",
+            "Mistral",
+        ]
+    )
     api_base: str | None = None
     api_key_env_var: str = "OPENAI_API_KEY"
     temperature: float = 0.1
@@ -400,6 +409,9 @@ class RagGenerationConfig(BaseModel):
     timeout_seconds: int = 60
     max_retries: int = 2
     deterministic_fallback_enabled: bool = True
+    grounded_synthesis_mode: bool = True
+    citation_constrained_generation: bool = True
+    deterministic_evaluation_mode: bool = True
 
 
 class RagGroundingConfig(BaseModel):
@@ -438,6 +450,7 @@ class RagMemoryConfig(BaseModel):
     max_history_items: int = 20
     max_active_topics: int = 12
     save_sessions_by_default: bool = True
+    max_retrieval_history_items: int = 40
 
 
 class RagPromptConfig(BaseModel):
@@ -450,12 +463,73 @@ class RagPromptConfig(BaseModel):
     literature_review_template: str = "literature_review"
 
 
+class RagQueryUnderstandingConfig(BaseModel):
+    enabled: bool = True
+    intent_classification: bool = True
+    acronym_expansion: bool = True
+    entity_extraction: bool = True
+    topic_extraction: bool = True
+
+
+class RagRoutingConfig(BaseModel):
+    section_routing_enabled: bool = True
+    topic_routing_enabled: bool = True
+    benchmark_routing_enabled: bool = True
+    definition_depth: int = 8
+    comparison_depth: int = 10
+    literature_review_depth: int = 12
+    paper_cluster_limit: int = 8
+
+
+class RagContextProcessingConfig(BaseModel):
+    compression_enabled: bool = True
+    mmr_enabled: bool = True
+    mmr_lambda: float = 0.70
+    target_reduction_ratio: float = 0.50
+    max_sentences_per_chunk: int = 2
+    compression_cache_enabled: bool = True
+
+
+class RagRerankingConfig(BaseModel):
+    enabled: bool = True
+    precision_model: str = "heuristic-answerability-reranker"
+    supported_models: list[str] = Field(
+        default_factory=lambda: [
+            "heuristic-answerability-reranker",
+            "BAAI/bge-reranker-v2-m3",
+            "jina-reranker-v2",
+            "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        ]
+    )
+    answerability_weight: float = 0.30
+    citation_density_weight: float = 0.10
+    section_relevance_weight: float = 0.15
+    semantic_intent_weight: float = 0.20
+
+
+class RagObservabilityConfig(BaseModel):
+    enabled: bool = True
+    log_prompt_efficiency: bool = True
+    log_chunk_utilization: bool = True
+    log_reranker_lift: bool = True
+
+
+class RagAgenticConfig(BaseModel):
+    enabled: bool = True
+    max_reasoning_steps: int = 4
+    retrieval_retry_limit: int = 3
+    reflection_enabled: bool = True
+    refinement_enabled: bool = True
+    contradiction_detection_enabled: bool = True
+
+
 class RagConfig(BaseModel):
     rag_cache_dir: Path
     rag_outputs_dir: Path
     research_sessions_dir: Path
     rag_evaluation_dir: Path
     generated_answers_dir: Path
+    rag_observability_dir: Path
     generation: RagGenerationConfig = Field(default_factory=RagGenerationConfig)
     grounding: RagGroundingConfig = Field(default_factory=RagGroundingConfig)
     synthesis: RagSynthesisConfig = Field(default_factory=RagSynthesisConfig)
@@ -463,6 +537,12 @@ class RagConfig(BaseModel):
     answer_quality: RagAnswerQualityConfig = Field(default_factory=RagAnswerQualityConfig)
     memory: RagMemoryConfig = Field(default_factory=RagMemoryConfig)
     prompts: RagPromptConfig = Field(default_factory=RagPromptConfig)
+    query_understanding: RagQueryUnderstandingConfig = Field(default_factory=RagQueryUnderstandingConfig)
+    routing: RagRoutingConfig = Field(default_factory=RagRoutingConfig)
+    context_processing: RagContextProcessingConfig = Field(default_factory=RagContextProcessingConfig)
+    reranking: RagRerankingConfig = Field(default_factory=RagRerankingConfig)
+    observability: RagObservabilityConfig = Field(default_factory=RagObservabilityConfig)
+    agentic: RagAgenticConfig = Field(default_factory=RagAgenticConfig)
 
     @model_validator(mode="after")
     def resolve_paths(self) -> "RagConfig":
@@ -472,6 +552,7 @@ class RagConfig(BaseModel):
             "research_sessions_dir",
             "rag_evaluation_dir",
             "generated_answers_dir",
+            "rag_observability_dir",
         ):
             value = getattr(self, field_name).expanduser()
             setattr(self, field_name, value)
@@ -583,6 +664,7 @@ def load_config(
         "research_sessions_dir",
         "rag_evaluation_dir",
         "generated_answers_dir",
+        "rag_observability_dir",
     ):
         value = getattr(config.rag, field_name).expanduser()
         if not value.is_absolute():

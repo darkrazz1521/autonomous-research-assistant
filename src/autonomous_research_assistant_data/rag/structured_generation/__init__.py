@@ -1,0 +1,1 @@
+"""Structured grounded synthesis."""

@@ -66,3 +66,9 @@ rag:
   prompts:
     max_context_chunks: 6
     max_prompt_chars: 12000
+  context_processing:
+    compression_enabled: true
+    mmr_enabled: true
+  agentic:
+    enabled: true
+    max_reasoning_steps: 3

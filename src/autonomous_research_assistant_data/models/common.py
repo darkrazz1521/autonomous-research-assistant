@@ -500,6 +500,9 @@ class ResearchSessionRecord(BaseModel):
     unresolved_questions: list[str] = Field(default_factory=list)
     user_research_interests: list[str] = Field(default_factory=list)
     citation_reuse: list[str] = Field(default_factory=list)
+    retrieval_history: list[dict[str, Any]] = Field(default_factory=list)
+    refinement_history: list[dict[str, Any]] = Field(default_factory=list)
+    evidence_reuse: dict[str, int] = Field(default_factory=dict)
     updated_at: datetime
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -514,4 +517,96 @@ class RAGEvaluationReport(BaseModel):
     hallucination_rate: float = 0.0
     latency_ms_mean: float = 0.0
     synthesis_quality: float = 0.0
+    contextual_precision: float = 0.0
+    contextual_recall: float = 0.0
+    faithfulness: float = 0.0
+    answer_relevancy: float = 0.0
+    retrieval_precision: float = 0.0
+    semantic_answer_quality: float = 0.0
+    retrieval_recovery_rate: float = 0.0
+    refinement_gain: float = 0.0
+    evidence_consistency: float = 0.0
+    contradiction_handling: float = 0.0
+    iterative_grounding_improvement: float = 0.0
+    plan_completion_quality: float = 0.0
+    reasoning_depth: float = 0.0
+    sub_query_effectiveness: float = 0.0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class QueryUnderstandingResult(BaseModel):
+    normalized_query: str
+    expanded_terms: list[str] = Field(default_factory=list)
+    entities: list[str] = Field(default_factory=list)
+    query_type: str = "definition"
+    target_topics: list[str] = Field(default_factory=list)
+    expected_answer_structure: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class RAGObservabilityReport(BaseModel):
+    query: str
+    retrieval_drift: float = 0.0
+    reranker_lift: float = 0.0
+    chunk_utilization: float = 0.0
+    context_waste_ratio: float = 0.0
+    hallucination_hotspot_score: float = 0.0
+    unsupported_claim_frequency: float = 0.0
+    retrieval_latency_ms: float = 0.0
+    prompt_efficiency: float = 0.0
+    reasoning_depth: int = 0
+    retrieval_retries: int = 0
+    refinement_gain: float = 0.0
+    evidence_graph_nodes: int = 0
+    evidence_graph_edges: int = 0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class AgenticSubtask(BaseModel):
+    id: str
+    objective: str
+    retrieval_strategy: str
+    priority: int = 1
+    status: str = "pending"
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class AgenticPlan(BaseModel):
+    goal: str
+    query_type: str
+    subtasks: list[AgenticSubtask] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class RetrievalLoopReport(BaseModel):
+    query: str
+    retries: int = 0
+    retrieval_confidence: float = 0.0
+    stopping_reason: str = "completed"
+    retry_queries: list[str] = Field(default_factory=list)
+    coverage_score: float = 0.0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReflectionReport(BaseModel):
+    critique: list[str] = Field(default_factory=list)
+    unsupported_claims: list[str] = Field(default_factory=list)
+    missing_evidence: list[str] = Field(default_factory=list)
+    contradiction_risk: float = 0.0
+    retrieval_sufficiency_score: float = 0.0
+    refinement_actions: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class EvidenceGraphReport(BaseModel):
+    nodes: list[dict[str, Any]] = Field(default_factory=list)
+    edges: list[dict[str, Any]] = Field(default_factory=list)
+    support_strength: float = 0.0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ContradictionReport(BaseModel):
+    contradiction_score: float = 0.0
+    disagreement_pairs: list[dict[str, Any]] = Field(default_factory=list)
+    uncertainty_notes: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)

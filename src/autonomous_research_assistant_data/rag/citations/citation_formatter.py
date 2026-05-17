@@ -9,7 +9,7 @@ class CitationFormatter:
     """Format inline citations and bibliography entries from retrieval results."""
 
     def format_inline(self, result: RetrievalResult) -> str:
-        return f"[{result.paper_id} §{result.section_name}]"
+        return f"[{result.paper_id} \u00A7{result.section_name}]"
 
     def format_bibliography_entry(self, result: RetrievalResult) -> str:
         return f"{result.paper_id} - {result.section_name}"

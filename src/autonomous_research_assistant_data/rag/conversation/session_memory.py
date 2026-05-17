@@ -45,6 +45,8 @@ class SessionMemoryStore:
         session.active_research_topics = list(dict.fromkeys(session.active_research_topics + topics))[: self.config.rag.memory.max_active_topics]
         session.unresolved_questions = list(dict.fromkeys(session.unresolved_questions + turn.unresolved_questions))
         session.citation_reuse = list(dict.fromkeys(session.citation_reuse + [record.citation_label for record in answer.citations]))
+        for chunk in answer.evidence_chunks:
+            session.evidence_reuse[chunk.chunk_id] = int(session.evidence_reuse.get(chunk.chunk_id, 0)) + 1
         session.updated_at = utc_now()
         if len(session.turns) > self.config.rag.memory.max_history_items:
             session.turns = session.turns[-self.config.rag.memory.max_history_items :]

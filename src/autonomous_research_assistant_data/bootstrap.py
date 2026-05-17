@@ -63,6 +63,7 @@ def bootstrap_directories(config: AppConfig) -> None:
         config.rag.research_sessions_dir,
         config.rag.rag_evaluation_dir,
         config.rag.generated_answers_dir,
+        config.rag.rag_observability_dir,
     ]
     for directory in required_dirs:
         if directory is not None:

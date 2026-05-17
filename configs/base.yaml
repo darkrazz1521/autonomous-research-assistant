@@ -313,9 +313,16 @@ rag:
   research_sessions_dir: datasets/research_sessions
   rag_evaluation_dir: datasets/rag_evaluation
   generated_answers_dir: datasets/generated_answers
+  rag_observability_dir: datasets/rag_observability
   generation:
     provider: heuristic
     model_name: heuristic-grounded-generator
+    supported_models:
+      - heuristic-grounded-generator
+      - Qwen2.5
+      - Llama 3
+      - DeepSeek
+      - Mistral
     api_base: null
     api_key_env_var: OPENAI_API_KEY
     temperature: 0.1
@@ -329,6 +336,9 @@ rag:
     timeout_seconds: 60
     max_retries: 2
     deterministic_fallback_enabled: true
+    grounded_synthesis_mode: true
+    citation_constrained_generation: true
+    deterministic_evaluation_mode: true
   grounding:
     min_grounding_score: 0.55
     max_hallucination_probability: 0.45
@@ -365,3 +375,48 @@ rag:
     comparison_template: comparison
     contradiction_template: contradiction
     literature_review_template: literature_review
+  query_understanding:
+    enabled: true
+    intent_classification: true
+    acronym_expansion: true
+    entity_extraction: true
+    topic_extraction: true
+  routing:
+    section_routing_enabled: true
+    topic_routing_enabled: true
+    benchmark_routing_enabled: true
+    definition_depth: 8
+    comparison_depth: 10
+    literature_review_depth: 12
+    paper_cluster_limit: 8
+  context_processing:
+    compression_enabled: true
+    mmr_enabled: true
+    mmr_lambda: 0.70
+    target_reduction_ratio: 0.50
+    max_sentences_per_chunk: 2
+    compression_cache_enabled: true
+  reranking:
+    enabled: true
+    precision_model: heuristic-answerability-reranker
+    supported_models:
+      - heuristic-answerability-reranker
+      - BAAI/bge-reranker-v2-m3
+      - jina-reranker-v2
+      - cross-encoder/ms-marco-MiniLM-L-6-v2
+    answerability_weight: 0.30
+    citation_density_weight: 0.10
+    section_relevance_weight: 0.15
+    semantic_intent_weight: 0.20
+  observability:
+    enabled: true
+    log_prompt_efficiency: true
+    log_chunk_utilization: true
+    log_reranker_lift: true
+  agentic:
+    enabled: true
+    max_reasoning_steps: 4
+    retrieval_retry_limit: 3
+    reflection_enabled: true
+    refinement_enabled: true
+    contradiction_detection_enabled: true

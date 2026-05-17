@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import OrderedDict
 
 from autonomous_research_assistant_data.config import AppConfig
-from autonomous_research_assistant_data.models.common import RetrievalResult
+from autonomous_research_assistant_data.models.common import QueryUnderstandingResult, RetrievalResult
 from autonomous_research_assistant_data.retrieval.api.service import RetrievalApi
 
 
@@ -16,8 +16,16 @@ class MultiHopRetriever:
         self.config = config
         self.api = api
 
-    def _follow_up_queries(self, query: str, first_hop: list[RetrievalResult]) -> list[str]:
+    def _follow_up_queries(
+        self,
+        query: str,
+        first_hop: list[RetrievalResult],
+        understanding: QueryUnderstandingResult | None = None,
+    ) -> list[str]:
         terms: list[str] = []
+        if understanding is not None:
+            terms.extend(understanding.entities[:2])
+            terms.extend(understanding.target_topics[:4])
         for result in first_hop[: self.config.rag.multi_hop.follow_up_queries_per_hop]:
             terms.extend(result.citation_entities[:1])
             terms.extend(result.metadata.get("chunk_topic_signature", [])[:2])
@@ -34,6 +42,7 @@ class MultiHopRetriever:
         expand_query: bool,
         context_window: bool,
         window_radius: int | None,
+        understanding: QueryUnderstandingResult | None = None,
     ) -> dict[str, object]:
         first_trace = self.api.search(
             query,
@@ -46,7 +55,7 @@ class MultiHopRetriever:
         )
         all_results: dict[str, RetrievalResult] = {item.chunk_id: item for item in first_trace.results}
         hops: list[dict[str, object]] = [{"query": query, "result_chunk_ids": list(all_results)}]
-        current_queries = self._follow_up_queries(query, first_trace.results)
+        current_queries = self._follow_up_queries(query, first_trace.results, understanding)
         for hop_index in range(2, self.config.rag.multi_hop.max_hops + 1):
             if not current_queries:
                 break
@@ -64,7 +73,7 @@ class MultiHopRetriever:
                 for item in trace.results:
                     all_results.setdefault(item.chunk_id, item)
                 hops.append({"query": follow_up, "hop": hop_index, "result_chunk_ids": [item.chunk_id for item in trace.results]})
-                next_queries.extend(self._follow_up_queries(follow_up, trace.results))
+                next_queries.extend(self._follow_up_queries(follow_up, trace.results, understanding))
             current_queries = list(OrderedDict.fromkeys(next_queries))
         merged = sorted(all_results.values(), key=lambda item: item.score, reverse=True)
         return {"results": merged, "trace": {"hops": hops, "multi_hop_enabled": True}}

@@ -42,4 +42,10 @@ rag:
     provider: heuristic
     streaming: false
   multi_hop:
+    enabled: false
+  context_processing:
+    compression_enabled: true
+    mmr_enabled: true
+  agentic:
     enabled: true
+    max_reasoning_steps: 4
