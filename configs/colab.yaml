@@ -72,3 +72,12 @@ rag:
   agentic:
     enabled: true
     max_reasoning_steps: 3
+
+writer:
+  enabled: true
+  max_revision_passes: 2
+  max_sections: 8
+  grounding_threshold: 0.7
+  citation_style: ieee
+  style: technical
+  export_format: markdown

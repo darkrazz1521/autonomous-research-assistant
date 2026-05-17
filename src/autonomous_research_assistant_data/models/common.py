@@ -610,3 +610,165 @@ class ContradictionReport(BaseModel):
     disagreement_pairs: list[dict[str, Any]] = Field(default_factory=list)
     uncertainty_notes: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class OutlineSectionRecord(BaseModel):
+    section_id: str
+    title: str
+    objective: str = ""
+    required_evidence: list[str] = Field(default_factory=list)
+    retrieval_strategy: str = "hybrid"
+    subsections: list["OutlineSectionRecord"] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class OutlinePlan(BaseModel):
+    title: str
+    report_type: str
+    topic: str
+    sections: list[OutlineSectionRecord] = Field(default_factory=list)
+    missing_evidence_areas: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class WritingSectionPlan(BaseModel):
+    section_id: str
+    title: str
+    objective: str = ""
+    section_query: str = ""
+    retrieval_strategy: str = "hybrid"
+    dependencies: list[str] = Field(default_factory=list)
+    required_terms: list[str] = Field(default_factory=list)
+    evidence_sufficiency_estimate: float = 0.0
+    subsection_ids: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class WritingPlan(BaseModel):
+    topic: str
+    report_type: str
+    title: str
+    section_sequence: list[WritingSectionPlan] = Field(default_factory=list)
+    iterative_drafting_enabled: bool = True
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SectionEvidenceRecord(BaseModel):
+    section_id: str
+    query: str
+    retrieval_results: list[RetrievalResult] = Field(default_factory=list)
+    coverage_score: float = 0.0
+    contradiction_report: ContradictionReport | None = None
+    retrieval_loop_report: RetrievalLoopReport | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class WriterRevisionRecord(BaseModel):
+    revision_index: int
+    actions: list[str] = Field(default_factory=list)
+    refinement_gain: float = 0.0
+    unsupported_claim_frequency: float = 0.0
+    redundancy_score: float = 0.0
+    coherence_score: float = 0.0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SectionDraft(BaseModel):
+    section_id: str
+    title: str
+    objective: str = ""
+    content: str = ""
+    summary: str = ""
+    citations: list[RAGCitationRecord] = Field(default_factory=list)
+    evidence_chunks: list[RAGEvidenceChunk] = Field(default_factory=list)
+    grounding_report: GroundingReport | None = None
+    answer_quality_report: AnswerQualityReport | None = None
+    revision_history: list[WriterRevisionRecord] = Field(default_factory=list)
+    unresolved_gaps: list[str] = Field(default_factory=list)
+    terminology: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class WritingMemoryEntry(BaseModel):
+    section_id: str
+    title: str
+    summary: str = ""
+    used_citation_labels: list[str] = Field(default_factory=list)
+    writing_decisions: list[str] = Field(default_factory=list)
+    terminology: list[str] = Field(default_factory=list)
+    repeated_concepts: list[str] = Field(default_factory=list)
+    unresolved_gaps: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class WriterSessionRecord(BaseModel):
+    session_id: str
+    topic: str
+    report_type: str
+    title: str = ""
+    outline: OutlinePlan | None = None
+    writing_plan: WritingPlan | None = None
+    sections: list[SectionDraft] = Field(default_factory=list)
+    writing_memory: list[WritingMemoryEntry] = Field(default_factory=list)
+    used_citations: list[str] = Field(default_factory=list)
+    terminology_map: dict[str, str] = Field(default_factory=dict)
+    unresolved_gaps: list[str] = Field(default_factory=list)
+    updated_at: datetime
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class WriterObservabilityReport(BaseModel):
+    session_id: str
+    topic: str
+    section_quality: dict[str, float] = Field(default_factory=dict)
+    evidence_coverage: dict[str, float] = Field(default_factory=dict)
+    revision_gains: dict[str, float] = Field(default_factory=dict)
+    citation_density: dict[str, float] = Field(default_factory=dict)
+    unsupported_claim_frequency: dict[str, float] = Field(default_factory=dict)
+    redundancy_ratios: dict[str, float] = Field(default_factory=dict)
+    writing_coherence: dict[str, float] = Field(default_factory=dict)
+    retrieval_usage_per_section: dict[str, int] = Field(default_factory=dict)
+    grounding_quality_per_section: dict[str, float] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class WriterEvaluationReport(BaseModel):
+    evaluation_id: str
+    session_id: str
+    topic: str
+    report_type: str
+    section_coherence: float = 0.0
+    grounding_quality: float = 0.0
+    citation_correctness: float = 0.0
+    redundancy_score: float = 0.0
+    terminology_consistency: float = 0.0
+    evidence_completeness: float = 0.0
+    structural_completeness: float = 0.0
+    transition_quality: float = 0.0
+    synthesis_quality: float = 0.0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ResearchReport(BaseModel):
+    report_id: str
+    session_id: str
+    topic: str
+    report_type: str
+    title: str
+    style: str = "technical"
+    citation_style: str = "ieee"
+    export_format: str = "markdown"
+    outline: OutlinePlan | None = None
+    sections: list[SectionDraft] = Field(default_factory=list)
+    introduction: str = ""
+    conclusion: str = ""
+    abstract: str = ""
+    content: str = ""
+    bibliography: list[str] = Field(default_factory=list)
+    citations: list[RAGCitationRecord] = Field(default_factory=list)
+    evaluation: WriterEvaluationReport | None = None
+    generated_at: datetime
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+OutlineSectionRecord.model_rebuild()

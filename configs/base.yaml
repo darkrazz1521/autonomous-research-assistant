@@ -420,3 +420,21 @@ rag:
     reflection_enabled: true
     refinement_enabled: true
     contradiction_detection_enabled: true
+
+writer:
+  enabled: true
+  generated_reports_dir: datasets/generated_reports
+  writer_sessions_dir: datasets/writer_sessions
+  writer_observability_dir: datasets/writer_observability
+  writer_evaluation_dir: datasets/writer_evaluation
+  max_revision_passes: 3
+  max_sections: 10
+  grounding_threshold: 0.7
+  citation_style: ieee
+  style: technical
+  export_format: markdown
+  max_subsections_per_section: 3
+  max_section_context_chunks: 8
+  evidence_coverage_threshold: 0.65
+  min_section_grounding_score: 0.55
+  max_writer_tokens: 1400

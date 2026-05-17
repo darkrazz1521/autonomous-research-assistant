@@ -523,6 +523,58 @@ class RagAgenticConfig(BaseModel):
     contradiction_detection_enabled: bool = True
 
 
+class WriterConfig(BaseModel):
+    generated_reports_dir: Path
+    writer_sessions_dir: Path
+    writer_observability_dir: Path
+    writer_evaluation_dir: Path
+    enabled: bool = True
+    max_revision_passes: int = 3
+    max_sections: int = 10
+    grounding_threshold: float = 0.7
+    citation_style: str = "ieee"
+    style: str = "technical"
+    export_format: str = "markdown"
+    max_subsections_per_section: int = 3
+    max_section_context_chunks: int = 8
+    evidence_coverage_threshold: float = 0.65
+    min_section_grounding_score: float = 0.55
+    max_writer_tokens: int = 1400
+    supported_report_types: list[str] = Field(
+        default_factory=lambda: [
+            "literature-review",
+            "technical-summary",
+            "comparison",
+            "methodology-analysis",
+            "benchmark-analysis",
+            "survey",
+        ]
+    )
+    supported_styles: list[str] = Field(
+        default_factory=lambda: [
+            "technical",
+            "survey",
+            "academic",
+            "comparison",
+            "tutorial",
+            "benchmark",
+        ]
+    )
+    supported_export_formats: list[str] = Field(default_factory=lambda: ["markdown", "json", "structured"])
+
+    @model_validator(mode="after")
+    def resolve_paths(self) -> "WriterConfig":
+        for field_name in (
+            "generated_reports_dir",
+            "writer_sessions_dir",
+            "writer_observability_dir",
+            "writer_evaluation_dir",
+        ):
+            value = getattr(self, field_name).expanduser()
+            setattr(self, field_name, value)
+        return self
+
+
 class RagConfig(BaseModel):
     rag_cache_dir: Path
     rag_outputs_dir: Path
@@ -573,6 +625,7 @@ class AppConfig(BaseModel):
     pdf_processing: PdfProcessingConfig
     retrieval: RetrievalConfig
     rag: RagConfig
+    writer: WriterConfig
 
     @property
     def profile(self) -> str:
@@ -670,5 +723,16 @@ def load_config(
         if not value.is_absolute():
             value = config.storage.root_dir / value
         setattr(config.rag, field_name, value)
+
+    for field_name in (
+        "generated_reports_dir",
+        "writer_sessions_dir",
+        "writer_observability_dir",
+        "writer_evaluation_dir",
+    ):
+        value = getattr(config.writer, field_name).expanduser()
+        if not value.is_absolute():
+            value = config.storage.root_dir / value
+        setattr(config.writer, field_name, value)
 
     return config
