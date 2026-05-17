@@ -31,7 +31,10 @@ class VectorIndexBuilder:
         namespace_value = namespace or self.config.retrieval.vector_db.namespace
         records = load_embedding_records(self.config.retrieval.embeddings_dir, self.model_name)
         if not records:
-            raise FileNotFoundError(f"No embeddings found for model {self.model_name}. Run generate_embeddings first.")
+            raise FileNotFoundError(
+                f"No embeddings found for model {self.model_name} under {self.config.retrieval.embeddings_dir}. "
+                "Run generate_embeddings after processed chunks are available."
+            )
 
         store = get_vector_store(self.config, self.model_name, self.backend)
         stats = store.build(records, namespace=namespace_value, force_rebuild=force_rebuild)

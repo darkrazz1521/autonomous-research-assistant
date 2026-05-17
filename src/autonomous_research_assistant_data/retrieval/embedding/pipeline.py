@@ -71,6 +71,13 @@ class EmbeddingPipeline:
     def generate(self, *, force_rebuild: bool = False, namespace: str | None = None) -> dict[str, Any]:
         namespace_value = namespace or self.config.retrieval.vector_db.namespace
         all_chunks = load_chunk_records(self.config.pdf_processing.chunks_dir)
+        if not all_chunks:
+            message = (
+                f"No processed chunks found under {self.config.pdf_processing.chunks_dir}. "
+                "Run process_arxiv_pdfs.py for this environment before generating embeddings."
+            )
+            self.logger.error(message)
+            raise FileNotFoundError(message)
         chunk_records: list[tuple[Path, Any, dict[str, Any] | None]] = []
         excluded_chunks = 0
         quality_rows: list[dict[str, Any]] = []
@@ -183,6 +190,7 @@ class EmbeddingPipeline:
             "namespace": namespace_value,
             "backend": self.embedder.backend,
             "vector_dim": self.embedder.vector_dim,
+            "discovered_chunks": len(all_chunks),
             "eligible_chunks": len(chunk_records),
             "excluded_chunks": excluded_chunks,
             "quality_filtering_enabled": self.quality_filtering,
@@ -191,6 +199,19 @@ class EmbeddingPipeline:
             "output_files": output_files,
             "generated_at": utc_now(),
         }
+        if not chunk_records:
+            reason = "All discovered chunks were excluded by eligibility or quality filters."
+            report["failure_reason"] = reason
+            analytics_path = self.analytics.write_report(f"embedding_report_{self.model_slug}", report)
+            report["analytics_path"] = str(analytics_path)
+            if self.quality_filtering and quality_rows:
+                quality_summary = self.analytics.write_chunk_quality_summary(quality_rows)
+                report["chunk_quality_analytics_path"] = str(quality_summary)
+            self.logger.error("Embedding generation produced zero eligible chunks", extra={"context": report})
+            raise RuntimeError(
+                f"{reason} Discovered={len(all_chunks)}, eligible=0, excluded={excluded_chunks}. "
+                "Review chunk quality thresholds or disable quality filtering for this run."
+            )
         analytics_path = self.analytics.write_report(f"embedding_report_{self.model_slug}", report)
         report["analytics_path"] = str(analytics_path)
         if self.quality_filtering and quality_rows:

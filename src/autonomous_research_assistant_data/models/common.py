@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ArxivPaperRecord(BaseModel):
@@ -302,6 +302,8 @@ class ProcessingReport(BaseModel):
 
 
 class EmbeddingRecord(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     embedding_id: str
     chunk_id: str
     paper_id: str
@@ -318,6 +320,8 @@ class EmbeddingRecord(BaseModel):
 
 
 class VectorIndexRecord(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     index_id: str
     namespace: str
     backend: str

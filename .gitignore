@@ -18,3 +18,10 @@ faiss_index/
 *.bin
 *.pkl
 *.parquet
+
+datasets/embeddings/
+datasets/vector_indexes/
+datasets/retrieval_cache/
+datasets/retrieval_analytics/
+datasets/retrieval_evaluation/
+datasets/memory_graph/S

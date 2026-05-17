@@ -33,12 +33,17 @@ def main() -> None:
     try:
         report = VectorIndexBuilder(config, model_name=args.embedding_model, backend=args.vector_db).build(force_rebuild=args.force_rebuild)
     except FileNotFoundError:
-        EmbeddingPipeline(
+        embedding_report = EmbeddingPipeline(
             config,
             model_name=args.embedding_model,
             batch_size=args.batch_size,
             quality_filtering=args.quality_filtering,
         ).generate(force_rebuild=args.force_rebuild)
+        if int(embedding_report.get("eligible_chunks", 0)) == 0:
+            raise RuntimeError(
+                "Embedding generation completed without any eligible chunks. "
+                "Run process_arxiv_pdfs.py for this environment or review the retrieval quality thresholds."
+            )
         report = VectorIndexBuilder(config, model_name=args.embedding_model, backend=args.vector_db).build(force_rebuild=args.force_rebuild)
     print(json.dumps(report, indent=2, default=str))
 
